@@ -71,7 +71,7 @@ def getBatteryLevel(numReads):
 # main program 
 try:
     piwatcher_led(False)     # turn off the PiWatcher's LED
-    piwatcher_watch(120)     # set 2-minute watchdog timeout
+    piwatcher_watch(180)     # set 2-minute watchdog timeout
 
     # All absolute times are in seconds from the start of today (00:00)
     t = time.localtime()
