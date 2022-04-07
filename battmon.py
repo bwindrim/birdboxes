@@ -42,6 +42,9 @@ def piwatcher_led(state):
     
 def piwatcher_wake(seconds):
     "Set the wake interval for PiWatcher"
+    if seconds > 129600: # clamp wake delay to 36 hours, to stay within limit
+        seconds = 129600
+
     result = subprocess.run(["/usr/local/bin/piwatcher", "wake", str(seconds)], capture_output=True)
     print("PiWatcher wake", seconds, "result =", result)
     
@@ -53,8 +56,13 @@ def piwatcher_watch(seconds):
 def system_shutdown(msg="System going down", when="now"):
     "Shut down the system"
     print("Shutdown:", msg)
-    result = subprocess.run(["/sbin/shutdown", when, str(msg)])
+    result = subprocess.run(["/sbin/shutdown", str(when), str(msg)])
     print("shutdown =", result)
+    
+def stop_boot_watchdog():
+    "Stop the piwatcher service"
+    result = subprocess.run(["/bin/systemctl", "stop", "piwatcher.service"])
+    print("stop piwatcher =", result)
     
 def getBatteryLevel(numReads):
     "Read the battery level via the GPIOs"
@@ -70,8 +78,9 @@ def getBatteryLevel(numReads):
 
 # main program 
 try:
+    stop_boot_watchdog()     # stop the boot watchdog script, as  we're taking over
     piwatcher_led(False)     # turn off the PiWatcher's LED
-    piwatcher_watch(180)     # set 2-minute watchdog timeout
+    piwatcher_watch(180)     # set 3-minute watchdog timeout
 
     # All absolute times are in seconds from the start of today (00:00)
     t = time.localtime()
