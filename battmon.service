@@ -1,0 +1,13 @@
+[Unit]
+Description=Battery monitoring, watchdog, and auto-shutdown daemon
+After=time-sync.target
+Wants=time-sync.target
+
+[Service]
+ExecStart=/usr/bin/python3 -O /home/pi/battmon.py
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+

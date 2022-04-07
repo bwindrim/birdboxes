@@ -28,7 +28,13 @@ def piwatcher_status():
     "Query PiWatcher to reset watchdog timer"
     result = subprocess.run(["/usr/local/bin/piwatcher", "status"], capture_output=True)
     print("PiWatcher status =", result)
+    return result.stdout.split()
     
+def piwatcher_reset():
+    "Reset PiWatcher status register, to clead timer_rebooted, button_pressed, etc."
+    result = subprocess.run(["/usr/local/bin/piwatcher", "reset"], capture_output=True)
+    print("PiWatcher status =", result)
+
 def piwatcher_led(state):
     "Switch the PiWatcher LED on or off"
     
@@ -79,6 +85,9 @@ def getBatteryLevel(numReads):
 # main program 
 try:
     stop_boot_watchdog()     # stop the boot watchdog script, as  we're taking over
+    system_shutdown("Cancelling backstop shutdown", when="-c")
+    initial_status = piwatcher_status() # store the piwatcher status
+    piwatcher_reset()        # reset the piwatcher status
     piwatcher_led(False)     # turn off the PiWatcher's LED
     piwatcher_watch(180)     # set 3-minute watchdog timeout
 
@@ -95,7 +104,7 @@ try:
     print ("Battery level = ", level)
     
     if h in range (0, 11):
-        # After midnight, power off immediately until 12pm tomorrow
+        # It's after midnight, power off immediately until 12pm tomorrow
         piwatcher_wake(noon_today - s)
         system_shutdown("Night-time immediate shutdown")        
     if level >= 80: # 4 battery bars
@@ -117,7 +126,11 @@ try:
          
     while True:
         # Main watchdog wakeup loop
-        piwatcher_status()  # reset the watchdog
+        status = piwatcher_status()  # reset the watchdog
+        if b'button_pressed' in status:
+            piwatcher_wake(noon_tomorrow - s)
+            system_shutdown("Button pressed, immediate shutdown")
+
         time.sleep(60) # sleep interval shouldn't be longer than half the watchdog time
         
 except KeyboardInterrupt:
