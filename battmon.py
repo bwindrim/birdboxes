@@ -41,7 +41,7 @@ def piwatcher_led(state):
     setting = "off"
     
     if state:
-        setting = "off"
+        setting = "on"
         
     result = subprocess.run(["/usr/local/bin/piwatcher", "led", setting], capture_output=True)
     print("PiWatcher status =", result)
@@ -128,6 +128,7 @@ try:
         # Main watchdog wakeup loop
         status = piwatcher_status()  # reset the watchdog
         if b'button_pressed' in status:
+            piwatcher_led(True)     # turn on the PiWatcher's LED
             piwatcher_wake(noon_tomorrow - s)
             system_shutdown("Button pressed, immediate shutdown")
 
