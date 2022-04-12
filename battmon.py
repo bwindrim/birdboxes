@@ -13,16 +13,12 @@ battery = [6,12,13,26]
 GPIO.setup(battery, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 def hours(num):
-    "Returns the duration in seconds of the specified number of hours"
-    return num*60*60
-
-def minutes(num):
-    "Returns the duration in seconds of the specified number of minutes"
+    "Returns the duration in minutes of the specified number of hours"
     return num*60
 
-def seconds(days, hours, mins, secs):
+def minutes(days, hours, mins):
     "TBD"
-    return ((days*24 + hours) * 60 + mins) * 60 + secs
+    return ((days*24 + hours) * 60 + mins)
 
 def piwatcher_status():
     "Query PiWatcher to reset watchdog timer"
@@ -31,7 +27,7 @@ def piwatcher_status():
     return result.stdout.split()
     
 def piwatcher_reset():
-    "Reset PiWatcher status register, to clead timer_rebooted, button_pressed, etc."
+    "Reset PiWatcher status register, to clear timer_rebooted, button_pressed, etc."
     result = subprocess.run(["/usr/local/bin/piwatcher", "reset"], capture_output=True)
     print("PiWatcher status =", result)
 
@@ -46,15 +42,18 @@ def piwatcher_led(state):
     result = subprocess.run(["/usr/local/bin/piwatcher", "led", setting], capture_output=True)
     print("PiWatcher status =", result)
     
-def piwatcher_wake(seconds):
+def piwatcher_wake(minutes):
     "Set the wake interval for PiWatcher"
+#    seconds = (minutes % 1440) * 60 # assume that a wake delay of >24 hours is a mistake
+    seconds = minutes * 60
     if seconds > 129600: # clamp wake delay to 36 hours, to stay within limit
         seconds = 129600
 
     result = subprocess.run(["/usr/local/bin/piwatcher", "wake", str(seconds)], capture_output=True)
     print("PiWatcher wake", seconds, "result =", result)
     
-def piwatcher_watch(seconds):
+def piwatcher_watch(minutes):
+    seconds = minutes * 60
     "Set the watchdog timeout interval for PiWatcher"
     result = subprocess.run(["/usr/local/bin/piwatcher", "watch", str(seconds)], capture_output=True)
     print("PiWatcher watch", seconds, "result =", result)
@@ -91,37 +90,35 @@ try:
     piwatcher_led(False)     # turn off the PiWatcher's LED
     piwatcher_watch(180)     # set 3-minute watchdog timeout
 
-    # All absolute times are in seconds from the start of today (00:00)
+    # All absolute times are in minutes from the start of today (00:00)
     t = time.localtime()
-    h = t.tm_hour
-    m = h*60 + t.tm_min 
-    s = m*60 + t.tm_sec # second in the day
-    noon_today = seconds(0,12,0,0)
-    noon_tomorrow = seconds(1,12,0,0)
-    print ("now =", s, "noon tomorrow =", noon_tomorrow)
+    now = t.tm_hour*60 + t.tm_min # minute in the day
+    noon_today = minutes(0,12,0)
+    noon_tomorrow = minutes(1,12,0)
+    print ("now =", m, "noon tomorrow =", noon_tomorrow)
     
     level = getBatteryLevel(20)
     print ("Battery level = ", level)
     
     if h in range (0, 11):
         # It's after midnight, power off immediately until 12pm tomorrow
-        piwatcher_wake(noon_today - s)
+        piwatcher_wake(noon_today - now)
         system_shutdown("Night-time immediate shutdown")        
     if level >= 80: # 4 battery bars
         # Battery good, stay up for 1 hour then power off until 12:00 tomorrow
-        piwatcher_wake(noon_tomorrow - (s + minutes(60)))
+        piwatcher_wake(noon_tomorrow - (now + minutes(60)))
         system_shutdown("Scheduled one-hour shutdown", when="+60")
     elif level >= 60: # 3 battery bars
         # Battery adequate, stay up for 30 minutes then power off until 12:00 tomorrow
-        piwatcher_wake(noon_tomorrow - (s + minutes(30)))
+        piwatcher_wake(noon_tomorrow - (now + minutes(30)))
         system_shutdown("Scheduled half-hour shutdown", when="+30")
     elif level >= 40: # 2 battery bars
         # Battery low, stay up for 5 minutes then power off until 12:00 tomorrow
-        piwatcher_wake(noon_tomorrow - (s + minutes(10)))
+        piwatcher_wake(noon_tomorrow - (now + minutes(10)))
         system_shutdown("Scheduled ten-minute shutdown", when="+10")
     else:
         # Battery critical, power off immediately until 12pm tomorrow
-        piwatcher_wake(noon_tomorrow - s)
+        piwatcher_wake(noon_tomorrow - now)
         system_shutdown("Default immediate shutdown")
          
     while True:
