@@ -4,7 +4,7 @@ After=time-sync.target
 Wants=time-sync.target
 
 [Service]
-ExecStart=/usr/bin/python3 -O /home/pi/battmon.py
+ExecStart=/usr/bin/python3 -O /home/pi/birdboxes/battmon.py
 Environment=PYTHONUNBUFFERED=1
 Restart=on-failure
 

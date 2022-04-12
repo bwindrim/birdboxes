@@ -6,7 +6,7 @@ StartLimitIntervalSec=0
 Type=simple
 Restart=always
 RestartSec=1
-ExecStart=/home/pi/piwatcher.sh
+ExecStart=/home/pi/birdboxes/piwatcher.sh
 
 [Install]
 WantedBy=multi-user.target
