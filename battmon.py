@@ -82,7 +82,7 @@ try:
     initial_status = piwatcher_status() # store the piwatcher status
     piwatcher_reset()        # reset the piwatcher status
     piwatcher_led(False)     # turn off the PiWatcher's LED
-    piwatcher_watch(3)     # set 3-minute watchdog timeout
+    piwatcher_watch(3)       # set 3-minute watchdog timeout
     # All absolute times are in minutes from the start of today (00:00)
     t = time.localtime()
     now = t.tm_hour*60 + t.tm_min # minute in the day
@@ -99,6 +99,7 @@ try:
     print ("Battery level = ", level)
     stay_up = 15 # default 15-minute time before shutting down, overridden below
     wake_time = noon_tomorrow # default wake-up time
+    message = "Default shutdown"
     # Decide how long to stay up, based on time of day and battery level
     if t.tm_hour in range (0, 9):
         # It's after midnight, power off immediately until 12pm tomorrow
@@ -136,6 +137,7 @@ try:
             stay_up = 0
             message = "Button pressed, immediate shutdown"
     # We've left the loop, initiate shutdown
+    piwatcher_watch(3)      # set 3-minute watchdog timeout, again, in case it was cancelled by user
     piwatcher_led(True)     # turn on the PiWatcher's LED
     piwatcher_wake(wake_time - now) # set the wake-up interval
     if exists("/tmp/noshutdown"):
