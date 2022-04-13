@@ -82,7 +82,7 @@ try:
     initial_status = piwatcher_status() # store the piwatcher status
     piwatcher_reset()        # reset the piwatcher status
     piwatcher_led(False)     # turn off the PiWatcher's LED
-    piwatcher_watch(180)     # set 3-minute watchdog timeout
+    piwatcher_watch(3)     # set 3-minute watchdog timeout
     # All absolute times are in minutes from the start of today (00:00)
     t = time.localtime()
     now = t.tm_hour*60 + t.tm_min # minute in the day
@@ -92,46 +92,53 @@ try:
     # Read the battery level from the solar controller
     level = getBatteryLevel(20)
     print ("Battery level = ", level)
+    stay_up = 15 # default 15-minute time before shutting down, overridden below
+    wake_time = noon_tomorrow
     # Decide how long to stay up, based on time of day and battery level
     if t.tm_hour in range (0, 9):
         # It's after midnight, power off immediately until 12pm tomorrow
-        piwatcher_wake(noon_today - now)
-        system_shutdown("Night-time immediate shutdown")        
-    elif level >= 80: # 4 battery bars
-        # Battery good, stay up for 2 hours then power off until 12:00 tomorrow
-        piwatcher_wake(noon_tomorrow - (now + 120))
-        system_shutdown("Scheduled one-hour shutdown", when="+120")
-    elif level >= 70: # 3-4 battery bars
-        # Battery pretty good, stay up for 90 minutes then power off until 12:00 tomorrow
-        piwatcher_wake(noon_tomorrow - (now + 90))
-        system_shutdown("Scheduled one-hour shutdown", when="+90")
-    elif level >= 60: # 3 battery bars
-        # Battery adequate, stay up for 60 minutes then power off until 12:00 tomorrow
-        piwatcher_wake(noon_tomorrow - (now + 60))
-        system_shutdown("Scheduled half-hour shutdown", when="+60")
-    elif level >= 50: # 2-3 battery bars
-        # Battery lowish, stay up for 30 minutes then power off until 12:00 tomorrow
-        piwatcher_wake(noon_tomorrow - (now + 30))
-        system_shutdown("Scheduled ten-minute shutdown", when="+30")
-    elif level >= 40: # 2 battery bars
-        # Battery low, stay up for 15 minutes then power off until 12:00 tomorrow
-        piwatcher_wake(noon_tomorrow - (now + 15))
-        system_shutdown("Scheduled ten-minute shutdown", when="+15")
-    else:
-        # Battery critical, power off immediately until 12pm tomorrow
-        piwatcher_wake(noon_tomorrow - now)
-        system_shutdown("Default immediate shutdown")
-    # main wait loop to kick the watchdog timer
-    while True:
-        # Main watchdog wakeup loop
-        status = piwatcher_status()  # reset the watchdog
-        if b'button_pressed' in status:
-            piwatcher_led(True)     # turn on the PiWatcher's LED
-            piwatcher_wake(noon_tomorrow - now)
-            system_shutdown("Button pressed, immediate shutdown")
-        # sleep for one minute
+        stay_up = 0
+        wake_time = noon_today
+        message = "Night-time immediate shutdown"
+    elif level >= 80: # 4 battery bars, stay up for 2 hours then power off until 12:00 tomorrow
+        stay_up = 120
+        message = "Scheduled two-hour shutdown"
+    elif level >= 70: # 3-4 battery bars, stay up for 90 minutes then power off until 12:00 tomorrow
+        stay_up = 90
+        message = "Scheduled 90-minute shutdown"
+    elif level >= 60: # 3 battery bars, stay up for 60 minutes then power off until 12:00 tomorrow
+        stay_up = 60
+        message = "Scheduled one-hour shutdown"
+    elif level >= 50: # 2-3 battery bars, stay up for 30 minutes then power off until 12:00 tomorrow
+        stay_up = 30
+        message = "Scheduled half-hour shutdown"
+    elif level >= 40: # 2 battery bars, stay up for 15 minutes then power off until 12:00 tomorrow
+        stay_up = 15
+        message = "Scheduled 15-minute shutdown"
+    else: # Battery critical, power off immediately until 12pm tomorrow
+        stay_up = 0
+        wake_time = noon_tomorrow
+        message = "Emergency shutdown"
+    print("stay-up duration =", stay_up, "wake-up interval =", wake_time)
+    # Main watchdog wakeup loop
+    while stay_up > 0:
+        # Sleep for one minute
         time.sleep(60) # sleep interval shouldn't be longer than half the watchdog time
         now = now + 1  # advance 'now' by one minute
+        stay_up = stay_up - 1 # decrement the remaining stay-up duration by one minute
+        status = piwatcher_status()  # reset the watchdog
+        if b'button_pressed' in status:
+            stay_up = 0
+            message = "Button pressed, immediate shutdown"
+#             piwatcher_wake(noon_tomorrow - now)
+#             system_shutdown("Button pressed, immediate shutdown")
+    # We've left the loop, initiate shutdown
+    piwatcher_led(True)     # turn on the PiWatcher's LED
+    piwatcher_wake(wake_time - now) # set the wake-up interval
+    system_shutdown(message)
+    # idle loop while we wait for shutdown
+    while True:
+        time.sleep(60) # sleep for one minute
 except KeyboardInterrupt:
     piwatcher_watch(0) # disable the watchdog
     print ("Done.")
