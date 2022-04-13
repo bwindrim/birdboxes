@@ -93,22 +93,30 @@ try:
     level = getBatteryLevel(20)
     print ("Battery level = ", level)
     # Decide how long to stay up, based on time of day and battery level
-    if t.tm_hour in range (0, 11):
+    if t.tm_hour in range (0, 9):
         # It's after midnight, power off immediately until 12pm tomorrow
         piwatcher_wake(noon_today - now)
         system_shutdown("Night-time immediate shutdown")        
-    if level >= 80: # 4 battery bars
-        # Battery good, stay up for 1 hour then power off until 12:00 tomorrow
-        piwatcher_wake(noon_tomorrow - (now + 60))
-        system_shutdown("Scheduled one-hour shutdown", when="+60")
+    elif level >= 80: # 4 battery bars
+        # Battery good, stay up for 2 hours then power off until 12:00 tomorrow
+        piwatcher_wake(noon_tomorrow - (now + 120))
+        system_shutdown("Scheduled one-hour shutdown", when="+120")
+    elif level >= 70: # 3-4 battery bars
+        # Battery pretty good, stay up for 90 minutes then power off until 12:00 tomorrow
+        piwatcher_wake(noon_tomorrow - (now + 90))
+        system_shutdown("Scheduled one-hour shutdown", when="+90")
     elif level >= 60: # 3 battery bars
-        # Battery adequate, stay up for 30 minutes then power off until 12:00 tomorrow
+        # Battery adequate, stay up for 60 minutes then power off until 12:00 tomorrow
+        piwatcher_wake(noon_tomorrow - (now + 60))
+        system_shutdown("Scheduled half-hour shutdown", when="+60")
+    elif level >= 50: # 2-3 battery bars
+        # Battery lowish, stay up for 30 minutes then power off until 12:00 tomorrow
         piwatcher_wake(noon_tomorrow - (now + 30))
-        system_shutdown("Scheduled half-hour shutdown", when="+30")
+        system_shutdown("Scheduled ten-minute shutdown", when="+30")
     elif level >= 40: # 2 battery bars
-        # Battery low, stay up for 5 minutes then power off until 12:00 tomorrow
-        piwatcher_wake(noon_tomorrow - (now + 10))
-        system_shutdown("Scheduled ten-minute shutdown", when="+10")
+        # Battery low, stay up for 15 minutes then power off until 12:00 tomorrow
+        piwatcher_wake(noon_tomorrow - (now + 15))
+        system_shutdown("Scheduled ten-minute shutdown", when="+15")
     else:
         # Battery critical, power off immediately until 12pm tomorrow
         piwatcher_wake(noon_tomorrow - now)
