@@ -12,8 +12,8 @@ do
 
     if [ $counter -le 0 ]
     then
-	# Ensure that we'll shutdown even if the battmon service doesn't start
-	/sbin/shutdown now "Backstop 15-minute shutdown from piwatcher.service"
+        # Ensure that we'll shutdown even if the battmon service doesn't start
+        /sbin/shutdown now "Backstop 15-minute shutdown from piwatcher.service"
     fi
 
     ((counter--))
