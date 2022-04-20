@@ -1,0 +1,10 @@
+[Unit]
+Description=Wait long enough for WireGuard to start before starting raspistill
+
+[Timer]
+OnBootSec=1min
+Unit=raspistill.socket
+
+[Install]
+WantedBy=timers.target
+

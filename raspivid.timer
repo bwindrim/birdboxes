@@ -1,0 +1,10 @@
+[Unit]
+Description=Wait long enough for WireGuard to start before starting raspivid
+
+[Timer]
+OnBootSec=2min
+Unit=raspivid.socket
+
+[Install]
+WantedBy=timers.target
+
