@@ -1,10 +1,10 @@
 [Unit]
 Description=Raspistill Socket
-After=wg-quick@server.service
-Requires=wg-quick@server.service
+After=wg-quick@local.service
+Requires=wg-quick@local.service
 
 [Socket]
-ListenStream=192.168.3.3:9999
+ListenStream=192.168.3.2:9999
 Accept=yes
 
 [Install]
