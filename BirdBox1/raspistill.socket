@@ -1,0 +1,12 @@
+[Unit]
+Description=Raspistill Socket
+After=wg-quick@server.service
+Requires=wg-quick@server.service
+
+[Socket]
+ListenStream=192.168.3.3:9999
+Accept=yes
+
+[Install]
+WantedBy=multi-user.target
+
