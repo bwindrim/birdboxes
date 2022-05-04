@@ -1,0 +1,11 @@
+[Unit]
+Description=Raspivid Socket
+After=wg-quick@local.service
+Requires=wg-quick@local.service
+
+[Socket]
+ListenStream=192.168.3.2:3333
+Accept=yes
+
+[Install]
+WantedBy=multi-user.target
