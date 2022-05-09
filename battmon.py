@@ -77,10 +77,11 @@ def getBatteryLevel(numReads=20):
 
 def evaluate(now, level):
     "Decide how long to stay up and sleep, based on current time-of-day and battery level"
-    if now < minutes(0,9,0): # It's after midnight, power off immediately until 9:00 tomorrow
+    if now < minutes(0,9,0): # It's after midnight, power off immediately until 9:00 today
         stay_up = 0
         wake_time = minutes(0,9,0)
         message = "Night-time immediate shutdown"
+        return (stay_up, wake_time, message) # early out
     elif level >= 80: # 4 battery bars, stay up for 2 hours then power off for 4 hours
         stay_up = 120
         wake_time = now + stay_up + 240
@@ -99,12 +100,29 @@ def evaluate(now, level):
         message = "Scheduled half-hour shutdown"
     elif level >= 40: # 2 battery bars, stay up for 15 minutes then power off until 12:00 tomorrow
         stay_up = 15
+        wake_time = minutes(1,12,0)
         message = "Scheduled 15-minute shutdown"
     else: # Battery critical, power off immediately until 12:00 tomorrow
         stay_up = 0
-        wake_time = noon_tomorrow
+        wake_time = minutes(1,12,0)
         message = "Emergency shutdown"
+    # Don't bother waking between 11PM and 9AM
+    if wake_time >= minutes(0,23,0): # wake is 11PM or later
+        wake_time = max(wake_time, minutes(1,9,0))
     return (stay_up, wake_time, message)
+
+def timestr(time):
+    "Convert time representation to readable time string"
+    hours, mins = divmod(time, 60)
+    string = format(hours, "02") + ":" + format(mins, "02")
+    return string
+
+def test():
+    "Test function for evaluate"
+    for level in range(80,0,-10):
+        for time in range(0, 1425, 15):
+            stay_up, wake_time, message = evaluate(time, level)
+            print(level, timestr(time), " = ", stay_up, "mins", timestr(wake_time))
 
 # main program 
 try:
