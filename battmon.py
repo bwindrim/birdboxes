@@ -24,7 +24,7 @@ def minutes(days, hours, mins):
 def piwatcher_status():
     "Query PiWatcher to reset watchdog timer"
     result = subprocess.run(["/usr/local/bin/piwatcher", "status"], capture_output=True)
-    print("PiWatcher status =", result)
+#    print("PiWatcher status =", result)
     return result.stdout.split()
 
 def piwatcher_reset():
@@ -132,6 +132,7 @@ def test_all():
 try:
     stop_boot_watchdog()     # stop the boot watchdog script, as we're taking over its job
     initial_status = piwatcher_status() # store the piwatcher status
+    print("PiWatcher initial status =", initial_status)    # log the status
     piwatcher_reset()        # clear the PiWatcher status
     piwatcher_led(False)     # turn off the PiWatcher's LED
     piwatcher_watch(3)       # set 3-minute watchdog timeout
@@ -162,22 +163,27 @@ try:
         now = now + 1  # advance 'now' by one minute
         stay_up = stay_up - 1 # decrement the remaining stay-up duration by one minute
         status = piwatcher_status()  # reset the watchdog
+        print("now = ", timestr(now), "stay up = ", stay_up, "battery level =", getBatteryLevel(), "status =", status)
         if b'button_pressed' in status: # shutdown immediately
             stay_up = 0
             message = "Button pressed, immediate shutdown"
+        if exists("/tmp/shutdown"): # if shutdown requested
+            stay_up = 0
+            message = "/tmp/shutdown detected, immediate shutdown"
     # We've left the loop, initiate shutdown
     piwatcher_watch(3)      # set 3-minute watchdog timeout, again, in case it was cancelled by user
     piwatcher_led(True)     # turn on the PiWatcher's LED
     piwatcher_wake(wake_time - now) # set the wake-up interval
+    print("Shutting down, wake time is", timestr(wake_time))
     if exists("/tmp/noshutdown"): # if shutdown is to be blocked
-        print("shutdown blocked by /tmp/noshutdown, deferring by one hour")
+        print("Shutdown blocked by /tmp/noshutdown, deferring by one hour")
         system_shutdown(message, when="+60")
     else:
         system_shutdown(message)
     # idle loop while we wait for shutdown
     while True:
         time.sleep(60) # sleep for one minute
-        piwatcher_status()  # reset the watchdog
+        print("PiWatcher status = ", piwatcher_status())  # reset the watchdog
 except KeyboardInterrupt:
     piwatcher_watch(0) # disable the watchdog
     print ("Done.")
