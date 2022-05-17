@@ -117,12 +117,16 @@ def timestr(time):
     string = format(hours, "02") + ":" + format(mins, "02")
     return string
 
-def test():
+def test(level):
+    "Test function for evaluate"
+    for time in range(0, 1440, 15):
+        stay_up, wake_time, message = evaluate(time, level)
+        print(timestr(time), " = ", stay_up, "mins", timestr(wake_time))
+
+def test_all():
     "Test function for evaluate"
     for level in range(80,0,-10):
-        for time in range(0, 1425, 15):
-            stay_up, wake_time, message = evaluate(time, level)
-            print(level, timestr(time), " = ", stay_up, "mins", timestr(wake_time))
+        test(level)
 
 # main program 
 try:
