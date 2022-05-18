@@ -76,8 +76,8 @@ def getBatteryLevel(numReads=20):
     return level
 
 def evaluate(now, level):
-    "Decide how long to stay up and sleep, based on current time-of-day and battery level"
-    if now < minutes(0,9,0): # It's after midnight, power off immediately until 9:00 today
+    "Decide how long to stay up and to sleep, based on current time-of-day and battery level"
+    if now < minutes(0,8,30): # It's after midnight but before 8:30, power off until 9:00 today
         stay_up = 0
         wake_time = minutes(0,9,0)
         message = "Night-time immediate shutdown"
@@ -86,13 +86,16 @@ def evaluate(now, level):
         stay_up = 120
         wake_time = now + stay_up + 240
         message = "Scheduled two-hour shutdown"
-    elif level >= 70: # 3-4 battery bars, stay up for 90 minutes then power off for 4 1/2 hours
-        stay_up = 90
-        wake_time = now + stay_up + 270
-        message = "Scheduled 90-minute shutdown"
-    elif level >= 60: # 3 battery bars, stay up for 60 minutes then power off until 9:00 tomorrow
+    elif level >= 70: # 3-4 battery bars, stay up for 1 hour then power off for 5 hours
         stay_up = 60
-        wake_time = minutes(1,9,0)
+        wake_time = now + stay_up + 300
+        message = "Scheduled one-hour shutdown"
+    elif level >= 60: # 3 battery bars, stay up for 60 minutes
+        stay_up = 60
+        if now < minutes(0,12,0): # before noon
+            wake_time = minutes(0,21,0) # wake at 9pm tonight
+        else:
+            wake_time = minutes(1,9,0) # wake at 9am tomorrow
         message = "Scheduled one-hour shutdown"
     elif level >= 50: # 2-3 battery bars, stay up for 30 minutes then power off until 9:00 tomorrow
         stay_up = 30
