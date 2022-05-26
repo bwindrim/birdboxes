@@ -2,7 +2,7 @@
 Description=Wait long enough for WireGuard to start before starting raspivid
 
 [Timer]
-OnBootSec=2min
+OnBootSec=5min
 Unit=raspivid.socket
 
 [Install]

@@ -24,7 +24,7 @@ def minutes(days, hours, mins):
 def piwatcher_status():
     "Query PiWatcher to reset watchdog timer"
     result = subprocess.run(["/usr/local/bin/piwatcher", "status"], capture_output=True)
-    print("PiWatcher status =", result)
+#    print("PiWatcher status =", result)
     return result.stdout.split()
 
 def piwatcher_reset():
@@ -37,8 +37,8 @@ def piwatcher_led(state):
     setting = "off"
     if state:
         setting = "on"
-    result = subprocess.run(["/usr/local/bin/piwatcher", "led", setting], capture_output=True)
-    print("PiWatcher status =", result)
+#     result = subprocess.run(["/usr/local/bin/piwatcher", "led", setting], capture_output=True)
+#     print("PiWatcher status =", result)
 
 def piwatcher_wake(minutes):
     "Set the wake interval for PiWatcher"
@@ -76,40 +76,66 @@ def getBatteryLevel(numReads=20):
     return level
 
 def evaluate(now, level):
-    "Decide how long to stay up and sleep, based on current time-of-day and battery level"
-    if now < minutes(0,9,0): # It's after midnight, power off immediately until 9:00 tomorrow
+    "Decide how long to stay up and to sleep, based on current time-of-day and battery level"
+    if now < minutes(0,8,30): # It's after midnight but before 8:30, power off until 9:00 today
         stay_up = 0
         wake_time = minutes(0,9,0)
         message = "Night-time immediate shutdown"
-    elif level >= 80: # 4 battery bars, stay up for 2 hours then power off for 4 hours
+        return (stay_up, wake_time, message) # early out
+    elif level >= 80: # 4 battery bars, stay up for 2 hours then power off for 3 hours
         stay_up = 120
-        wake_time = now + stay_up + 240
+        wake_time = now + stay_up + 180
         message = "Scheduled two-hour shutdown"
-    elif level >= 70: # 3-4 battery bars, stay up for 90 minutes then power off for 4 1/2 hours
-        stay_up = 90
-        wake_time = now + stay_up + 270
-        message = "Scheduled 90-minute shutdown"
-    elif level >= 60: # 3 battery bars, stay up for 60 minutes then power off until 9:00 tomorrow
+    elif level >= 70: # 3-4 battery bars, stay up for 1 hour then power off for 4 hours
         stay_up = 60
-        wake_time = minutes(1,9,0)
+        wake_time = now + stay_up + 240
+        message = "Scheduled one-hour shutdown"
+    elif level >= 60: # 3 battery bars, stay up for 60 minutes
+        stay_up = 60
+        if now < minutes(0,12,0): # before noon
+            wake_time = minutes(0,19,0) # wake at 7pm tonight
+        else:
+            wake_time = minutes(1,9,0) # wake at 9am tomorrow
         message = "Scheduled one-hour shutdown"
     elif level >= 50: # 2-3 battery bars, stay up for 30 minutes then power off until 9:00 tomorrow
         stay_up = 30
         wake_time = minutes(1,9,0)
         message = "Scheduled half-hour shutdown"
-    elif level >= 40: # 2 battery bars, stay up for 15 minutes then power off until 12:00 tomorrow
+    elif level >= 40: # 2 battery bars, stay up for 15 minutes then power off until 9:00 tomorrow
         stay_up = 15
+        wake_time = minutes(1,9,0)
         message = "Scheduled 15-minute shutdown"
     else: # Battery critical, power off immediately until 12:00 tomorrow
         stay_up = 0
-        wake_time = noon_tomorrow
+        wake_time = minutes(1,12,0)
         message = "Emergency shutdown"
+    # Don't bother waking between 11PM and 9AM
+    if wake_time >= minutes(0,23,0): # wake is 11PM or later
+        wake_time = max(wake_time, minutes(1,9,0))
     return (stay_up, wake_time, message)
+
+def timestr(time):
+    "Convert time representation to readable time string"
+    hours, mins = divmod(time, 60)
+    string = format(hours, "02") + ":" + format(mins, "02")
+    return string
+
+def test(level):
+    "Test function for evaluate"
+    for time in range(0, 1440, 15):
+        stay_up, wake_time, message = evaluate(time, level)
+        print(timestr(time), " = ", stay_up, "mins", timestr(wake_time))
+
+def test_all():
+    "Test function for evaluate"
+    for level in range(80,0,-10):
+        test(level)
 
 # main program 
 try:
     stop_boot_watchdog()     # stop the boot watchdog script, as we're taking over its job
     initial_status = piwatcher_status() # store the piwatcher status
+    print("PiWatcher initial status =", initial_status)    # log the status
     piwatcher_reset()        # clear the PiWatcher status
     piwatcher_led(False)     # turn off the PiWatcher's LED
     piwatcher_watch(3)       # set 3-minute watchdog timeout
@@ -140,22 +166,29 @@ try:
         now = now + 1  # advance 'now' by one minute
         stay_up = stay_up - 1 # decrement the remaining stay-up duration by one minute
         status = piwatcher_status()  # reset the watchdog
+        print("now = ", timestr(now), "stay up = ", stay_up, "battery level =", getBatteryLevel(), "status =", status)
         if b'button_pressed' in status: # shutdown immediately
             stay_up = 0
             message = "Button pressed, immediate shutdown"
+        if exists("/tmp/shutdown"): # if shutdown requested
+            stay_up = 0
+            message = "/tmp/shutdown detected, immediate shutdown"
     # We've left the loop, initiate shutdown
     piwatcher_watch(3)      # set 3-minute watchdog timeout, again, in case it was cancelled by user
     piwatcher_led(True)     # turn on the PiWatcher's LED
     piwatcher_wake(wake_time - now) # set the wake-up interval
+    print("Shutting down, wake time is", timestr(wake_time))
     if exists("/tmp/noshutdown"): # if shutdown is to be blocked
-        print("shutdown blocked by /tmp/noshutdown, deferring by one hour")
+        print("Shutdown blocked by /tmp/noshutdown, deferring by one hour")
         system_shutdown(message, when="+60")
     else:
         system_shutdown(message)
     # idle loop while we wait for shutdown
     while True:
         time.sleep(60) # sleep for one minute
-        piwatcher_status()  # reset the watchdog
+        now = now + 1  # advance 'now' by one minute
+        status = piwatcher_status()  # reset the watchdog
+        print("now = ", timestr(now), "stay up = ", stay_up, "battery level =", getBatteryLevel(), "status =", status)
 except KeyboardInterrupt:
     piwatcher_watch(0) # disable the watchdog
     print ("Done.")
