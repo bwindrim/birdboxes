@@ -37,8 +37,8 @@ def piwatcher_led(state):
     setting = "off"
     if state:
         setting = "on"
-    result = subprocess.run(["/usr/local/bin/piwatcher", "led", setting], capture_output=True)
-    print("PiWatcher status =", result)
+#     result = subprocess.run(["/usr/local/bin/piwatcher", "led", setting], capture_output=True)
+#     print("PiWatcher status =", result)
 
 def piwatcher_wake(minutes):
     "Set the wake interval for PiWatcher"
@@ -82,18 +82,18 @@ def evaluate(now, level):
         wake_time = minutes(0,9,0)
         message = "Night-time immediate shutdown"
         return (stay_up, wake_time, message) # early out
-    elif level >= 80: # 4 battery bars, stay up for 2 hours then power off for 4 hours
+    elif level >= 80: # 4 battery bars, stay up for 2 hours then power off for 3 hours
         stay_up = 120
-        wake_time = now + stay_up + 240
+        wake_time = now + stay_up + 180
         message = "Scheduled two-hour shutdown"
-    elif level >= 70: # 3-4 battery bars, stay up for 1 hour then power off for 5 hours
+    elif level >= 70: # 3-4 battery bars, stay up for 1 hour then power off for 4 hours
         stay_up = 60
-        wake_time = now + stay_up + 300
+        wake_time = now + stay_up + 240
         message = "Scheduled one-hour shutdown"
     elif level >= 60: # 3 battery bars, stay up for 60 minutes
         stay_up = 60
         if now < minutes(0,12,0): # before noon
-            wake_time = minutes(0,21,0) # wake at 9pm tonight
+            wake_time = minutes(0,19,0) # wake at 7pm tonight
         else:
             wake_time = minutes(1,9,0) # wake at 9am tomorrow
         message = "Scheduled one-hour shutdown"
@@ -101,9 +101,9 @@ def evaluate(now, level):
         stay_up = 30
         wake_time = minutes(1,9,0)
         message = "Scheduled half-hour shutdown"
-    elif level >= 40: # 2 battery bars, stay up for 15 minutes then power off until 12:00 tomorrow
+    elif level >= 40: # 2 battery bars, stay up for 15 minutes then power off until 9:00 tomorrow
         stay_up = 15
-        wake_time = minutes(1,12,0)
+        wake_time = minutes(1,9,0)
         message = "Scheduled 15-minute shutdown"
     else: # Battery critical, power off immediately until 12:00 tomorrow
         stay_up = 0
@@ -186,7 +186,9 @@ try:
     # idle loop while we wait for shutdown
     while True:
         time.sleep(60) # sleep for one minute
-        print("PiWatcher status = ", piwatcher_status())  # reset the watchdog
+        now = now + 1  # advance 'now' by one minute
+        status = piwatcher_status()  # reset the watchdog
+        print("now = ", timestr(now), "stay up = ", stay_up, "battery level =", getBatteryLevel(), "status =", status)
 except KeyboardInterrupt:
     piwatcher_watch(0) # disable the watchdog
     print ("Done.")
