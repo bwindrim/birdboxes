@@ -42,7 +42,8 @@ def piwatcher_led(state):
 
 def piwatcher_wake(minutes):
     "Set the wake interval for PiWatcher"
-#    seconds = (minutes % 1440) * 60 # assume that a wake delay of >24 hours is a mistake
+    if minutes < 10:
+        minutes = 10 # enforce minimum wake interval
     seconds = minutes * 60
     if seconds > 129600: # clamp wake delay to 36 hours, to stay within limit
         seconds = 129600
@@ -50,8 +51,12 @@ def piwatcher_wake(minutes):
     print("PiWatcher wake", seconds, "result =", result)
 
 def piwatcher_watch(minutes):
+    if minutes < 3: # enforce minimum watch time
+        minutes = 3
     "Set the watchdog timeout interval for PiWatcher"
     seconds = minutes * 60
+    if seconds > 255:
+        seconds = 255 # don't exceed hw-defined limit
     result = subprocess.run(["/usr/local/bin/piwatcher", "watch", str(seconds)], capture_output=True)
     print("PiWatcher watch", seconds, "result =", result)
 
@@ -90,13 +95,10 @@ def evaluate(now, level):
         stay_up = 60
         wake_time = now + stay_up + 240
         message = "Scheduled one-hour shutdown"
-    elif level >= 60: # 3 battery bars, stay up for 60 minutes
-        stay_up = 60
-        if now < minutes(0,12,0): # before noon
-            wake_time = minutes(0,19,0) # wake at 7pm tonight
-        else:
-            wake_time = minutes(1,9,0) # wake at 9am tomorrow
-        message = "Scheduled one-hour shutdown"
+    elif level >= 60: # 3 battery bars, stay up for 40 minutes then power off for 5 1/3 hours
+        stay_up = 40
+        wake_time = now + stay_up + 260
+        message = "Scheduled half-hour shutdown"
     elif level >= 50: # 2-3 battery bars, stay up for 30 minutes then power off until 9:00 tomorrow
         stay_up = 30
         wake_time = minutes(1,9,0)
@@ -109,9 +111,9 @@ def evaluate(now, level):
         stay_up = 0
         wake_time = minutes(1,12,0)
         message = "Emergency shutdown"
-    # Don't bother waking between 11PM and 9AM
+    wake_time = wake_time // 15 * 15 # Round wake time down to nearest 15 minutes
     if wake_time >= minutes(0,23,0): # wake is 11PM or later
-        wake_time = max(wake_time, minutes(1,9,0))
+        wake_time = max(wake_time, minutes(1,9,0)) # Don't bother waking until 9am
     return (stay_up, wake_time, message)
 
 def timestr(time):
@@ -120,9 +122,9 @@ def timestr(time):
     string = format(hours, "02") + ":" + format(mins, "02")
     return string
 
-def test(level):
+def test(level, interval=15):
     "Test function for evaluate"
-    for time in range(0, 1440, 15):
+    for time in range(0, 1440, interval):
         stay_up, wake_time, message = evaluate(time, level)
         print(timestr(time), " = ", stay_up, "mins", timestr(wake_time))
 
@@ -168,6 +170,7 @@ try:
         status = piwatcher_status()  # reset the watchdog
         print("now = ", timestr(now), "stay up = ", stay_up, "battery level =", getBatteryLevel(), "status =", status)
         if b'button_pressed' in status: # shutdown immediately
+#            piwatcher_reset()        # clear the PiWatcher status
             stay_up = 0
             message = "Button pressed, immediate shutdown"
         if exists("/tmp/shutdown"): # if shutdown requested
@@ -176,7 +179,7 @@ try:
     # We've left the loop, initiate shutdown
     piwatcher_watch(3)      # set 3-minute watchdog timeout, again, in case it was cancelled by user
     piwatcher_led(True)     # turn on the PiWatcher's LED
-    piwatcher_wake(wake_time - now) # set the wake-up interval
+    piwatcher_wake(wake_time - now - 3) # set the wake-up interval
     print("Shutting down, wake time is", timestr(wake_time))
     if exists("/tmp/noshutdown"): # if shutdown is to be blocked
         print("Shutdown blocked by /tmp/noshutdown, deferring by one hour")
