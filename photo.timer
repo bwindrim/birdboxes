@@ -1,8 +1,8 @@
 [Unit]
-Description=Take a photo every 15 mins
+Description=Take a photo every minute
 
 [Timer]
-OnCalendar=*:0/15
+OnCalendar=*:0/1
 
 [Install]
 WantedBy=timers.target
