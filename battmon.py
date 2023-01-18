@@ -2,8 +2,11 @@ import sys
 import time
 import subprocess
 import RPi.GPIO as GPIO
+import paho.mqtt.client as mqtt
 from datetime import datetime
 from os.path import exists
+
+broker_name = "192.168.3.1" # WG address of Pi2B
 
 # Use BCM GPIO references instead of physical pin numbers
 GPIO.setmode(GPIO.BCM)
@@ -133,6 +136,14 @@ def test_all():
     for level in range(80,0,-10):
         test(level)
 
+# MQTT setup
+def on_log(client, userdata, level, buf):
+    print("log: ",buf)
+    
+client = mqtt.Client("BirdBox1")
+client.connect(broker_name)
+client.on_log = on_log
+
 # main program 
 try:
     stop_boot_watchdog()     # stop the boot watchdog script, as we're taking over its job
@@ -155,6 +166,8 @@ try:
     # Read the battery level from the solar controller
     level = getBatteryLevel()
     print ("Battery level = ", level)
+    client.publish("birdboxes/birdbox1/battery_level", level)
+
     stay_up = 15 # default 15-minute time before shutting down, overridden below
     wake_time = noon_tomorrow # default wake-up time
     message = "Default shutdown"
@@ -168,7 +181,9 @@ try:
         now = now + 1  # advance 'now' by one minute
         stay_up = stay_up - 1 # decrement the remaining stay-up duration by one minute
         status = piwatcher_status()  # reset the watchdog
-        print("now = ", timestr(now), "stay up = ", stay_up, "battery level =", getBatteryLevel(), "status =", status)
+        level = getBatteryLevel()
+        print("now = ", timestr(now), "stay up = ", stay_up, "battery level =", level, "status =", status)
+        client.publish("birdboxes/birdbox1/battery_level", level)
         if b'button_pressed' in status: # shutdown immediately
 #            piwatcher_reset()        # clear the PiWatcher status
             stay_up = 0
