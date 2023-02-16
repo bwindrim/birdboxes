@@ -151,10 +151,12 @@ client.on_log = on_log
 
 # main program 
 try:
+    client.loop_start() # start the loop in a thread
     stop_boot_watchdog()     # stop the boot watchdog script, as we're taking over its job
     initial_status = piwatcher_status() # store the piwatcher status
     print("PiWatcher initial status =", initial_status)    # log the status
-#    client.publish("birdboxes/birdbox1/initial_status", initial_status, retain=True)
+    if len(initial_status) >= 2:
+        client.publish("birdboxes/birdbox1/initial_status", int(initial_status[1], base=16), retain=True)
     piwatcher_reset()        # clear the PiWatcher status
     piwatcher_led(False)     # turn off the PiWatcher's LED
     piwatcher_watch(3)       # set 3-minute watchdog timeout
@@ -194,7 +196,8 @@ try:
         level = getBatteryLevel()
         print("now = ", timestr(now), "stay up = ", stay_up, "battery level =", level, "status =", status)
         client.publish("birdboxes/birdbox1/battery_level", level, retain=True)
-#        client.publish("birdboxes/birdbox1/status", status, retain=True)
+        if len(status) >= 2:
+            client.publish("birdboxes/birdbox1/status", int(status[1], base=16), retain=True)
         if b'button_pressed' in status: # shutdown immediately
 #            piwatcher_reset()        # clear the PiWatcher status
             stay_up = 0
@@ -223,5 +226,6 @@ try:
 except KeyboardInterrupt:
     piwatcher_watch(0) # disable the watchdog
     print ("Done.")
+    client.loop_stop() # stop the MQTT loop thread
     GPIO.cleanup()
 
