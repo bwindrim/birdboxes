@@ -14,6 +14,8 @@ GPIO.setmode(GPIO.BCM)
 # Define GPIO signals to use
 battery = [6,12,13,26]
 
+force_up = None
+
 GPIO.setup(battery, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 def hours(num):
@@ -142,11 +144,23 @@ def test_all():
         test(level)
 
 # MQTT setup
+def on_message(client, userdata, message):
+    if message.retain:
+        print(message.topic, "=", str(message.payload.decode("utf-8")), "(retained)")
+    else:
+        print(message.topic, "=", str(message.payload.decode("utf-8")), "(live)")
+    if message.topic is "birdboxes/birdbox1/force_up":
+        if message.payload:
+            force_up = bool(int.from_bytes(message.payload, byteorder='little'))
+        else:
+            force_up = None
+
 def on_log(client, userdata, level, buf):
     print("log: ",buf)
     
 client = mqtt.Client("BirdBox1")
 client.connect(broker_name)
+client.on_message=on_message
 client.on_log = on_log
 
 # main program 
