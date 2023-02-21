@@ -198,7 +198,7 @@ try:
     stay_up, wake_time, message = evaluate(now, level)
     print("stay-up duration =", stay_up, "wake-up time =", wake_time)
     client.publish("birdboxes/birdbox1/initial_stay_up", stay_up, retain=True)
-    client.publish("birdboxes/birdbox1/wake_time", wake_time, retain=True)
+    client.publish("birdboxes/birdbox1/wake_time", timestr(wake_time), retain=True)
     # Main watchdog wakeup loop
     while stay_up > 0:
         # Sleep for one minute
