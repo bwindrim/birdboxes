@@ -1,9 +1,15 @@
 import sys
 import time
 import subprocess
+import smbus # for I2C
+from struct import pack, unpack
 import RPi.GPIO as GPIO
 from datetime import datetime
 from os.path import exists
+
+# These are constants from MicroPython's machine module, which we don't havedirect access to here
+PWRON_RESET = 1
+WDT_RESET = 3
 
 # Use BCM GPIO references instead of physical pin numbers
 GPIO.setmode(GPIO.BCM)
@@ -13,6 +19,10 @@ battery = [6,12,13,26]
 
 GPIO.setup(battery, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
+# Set up I2C link to the Pico
+i2c = smbus.SMBus(1)
+addr = 0x41
+
 def hours(num):
     "Returns the duration in minutes of the specified number of hours"
     return num*60
@@ -21,39 +31,64 @@ def minutes(days, hours, mins):
     "TBD"
     return ((days*24 + hours) * 60 + mins)
 
+def status_to_str(status):
+    "Convert PicoWatcher status to a readable string"
+    hw_status = status & 0x0F
+    sw_status = status & 0x30 >> 4
+    if hw_status is WDT_RESET:
+        return "watchdog_reset"
+    if hw_status is PWRON_RESET:
+        return "poweron_reset"
+    if sw_status is 3:
+        return "button_rebooted"
+    if status is 2:
+        return "button_pressed"
+    if status is 1:
+        return "timer_rebooted"
+    return ""
+    
 def piwatcher_status():
-    "Query PiWatcher to reset watchdog timer"
-    result = subprocess.run(["/usr/local/bin/piwatcher", "status"], capture_output=True)
-    print("PiWatcher status =", result)
-    return result.stdout.split()
+    "Query PicoWatcher to reset watch timer"
+    result = i2c.read_byte_data(addr, 1)
+    print("PicoWatcher status =", result)
+    return ["OK", hex(result), status_to_str(result)]
 
 def piwatcher_reset():
-    "Reset PiWatcher status register, to clear timer_rebooted, button_pressed, etc."
-    result = subprocess.run(["/usr/local/bin/piwatcher", "reset"], capture_output=True)
-    print("PiWatcher status =", result)
+    "Reset PicoWatcher status register, to clear timer_rebooted, button_pressed, etc."
+    result = i2c.read_byte_data(addr, 4)
+    print("PicoWatcher reset =", result)
+    return ["OK", hex(result), status_to_str(result)]
 
 def piwatcher_led(state):
-    "Switch the PiWatcher LED on or off"
+    "Switch the PicoWatcher LED on or off"
     setting = "off"
     if state:
         setting = "on"
-    result = subprocess.run(["/usr/local/bin/piwatcher", "led", setting], capture_output=True)
-    print("PiWatcher status =", result)
 
 def piwatcher_wake(minutes):
-    "Set the wake interval for PiWatcher"
-#    seconds = (minutes % 1440) * 60 # assume that a wake delay of >24 hours is a mistake
-    seconds = minutes * 60
-    if seconds > 129600: # clamp wake delay to 36 hours, to stay within limit
-        seconds = 129600
-    result = subprocess.run(["/usr/local/bin/piwatcher", "wake", str(seconds)], capture_output=True)
-    print("PiWatcher wake", seconds, "result =", result)
+    "Set the wake interval for PicoWatcher"
+    seconds = min(129600, minutes * 60) # clamp wake delay to 36 hours, to stay within 16-bit limit
+    result = i2c.write_word_data(addr, 6, seconds)
+    print("PicoWatcher wake", seconds, "result =", result)
 
 def piwatcher_watch(minutes):
-    "Set the watchdog timeout interval for PiWatcher"
-    seconds = minutes * 60
-    result = subprocess.run(["/usr/local/bin/piwatcher", "watch", str(seconds)], capture_output=True)
-    print("PiWatcher watch", seconds, "result =", result)
+    "Set the watch timeout interval for PicoWatcher"
+    seconds = min (240, minutes * 60) # clamp wake delay to 240 seconds, to stay within 8-bit limit
+    result = i2c.write_byte_data(addr, 5, seconds)
+    print("PicoWatcher watch", seconds, "result =", result)
+                  
+
+def picowatcher_rtc(time=None):
+    "Get or set the Pico's RTC"
+    if time is None:
+        time_list = i2c.read_i2c_block_data(addr, 3, 10)
+        time_bytes = bytes(time_list)
+        result = struct.unpack("HBBBBBBH", time_bytes)
+    else:
+        time_bytes = struct.pack("HBBBBBBH", *time)
+        time_list = list(time_bytes)
+        result = i2c.write_i2c_block_data(addr, 3, time_list)
+    return result
 
 def system_shutdown(msg="System going down", when="now"):
     "Shut down the system"
@@ -67,12 +102,8 @@ def stop_boot_watchdog():
     print("stop piwatcher =", result)
 
 def getBatteryLevel(numReads=20):
-    "Read the battery level via the GPIOs"
-    level = 0
-    # Perform repeated reads of each battery pin, and sum them
-    for i in range(numReads):
-        for pin in battery:
-            level += (1 - GPIO.input(pin))
+    "Read the battery level from PicoWatcher"
+    level = i2c.read_word_data(addr, 2)
     return level
 
 def evaluate(now, level):
