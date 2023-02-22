@@ -1,6 +1,6 @@
 #!/bin/bash
 
-FILE=$(date +"BB3_%FT%H-%M-%S.h264")
+FILE=$(date +"BB1_%FT%H-%M-%S.h264")
 
-/usr/bin/raspivid -t 0 -n -w 640 -h 480 -rot 180 -o - | tee --output-error=exit /tmp/$FILE
+/usr/bin/raspivid -awb off -awbg '1.0,1.0' -t 0 -n -w 640 -h 480 -o - | tee --output-error=exit /mnt/capture/$FILE
 
