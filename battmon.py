@@ -36,33 +36,34 @@ def minutes(days, hours, mins):
     "TBD"
     return ((days*24 + hours) * 60 + mins)
 
-def status_to_str(status):
+def status_to_bytestr(status):
     "Convert PicoWatcher status to a readable string"
     hw_status = status & 0x0F
-    sw_status = status & 0x30 >> 4
+    sw_status = (status & 0x30) >> 4
+    print("status =", status, "hw_status =", hw_status, "sw_status =", sw_status)
     if hw_status is WDT_RESET:
-        return "watchdog_reset"
+        return b'watchdog_reset'
     if hw_status is PWRON_RESET:
-        return "poweron_reset"
+        return b'poweron_reset'
     if sw_status is 3:
-        return "button_rebooted"
-    if status is 2:
-        return "button_pressed"
-    if status is 1:
-        return "timer_rebooted"
-    return ""
+        return b'button_rebooted'
+    if sw_status is 2:
+        return b'button_pressed'
+    if sw_status is 1:
+        return b'timer_rebooted'
+    return b''
     
 def piwatcher_status():
     "Query PicoWatcher to reset watch timer"
     result = i2c.read_byte_data(addr, 1)
     print("PicoWatcher status =", result)
-    return ["OK", hex(result), status_to_str(result)]
+    return [b'OK', hex(result), status_to_bytestr(result)]
 
 def piwatcher_reset():
     "Reset PicoWatcher status register, to clear timer_rebooted, button_pressed, etc."
     result = i2c.read_byte_data(addr, 4)
     print("PicoWatcher reset =", result)
-    return ["OK", hex(result), status_to_str(result)]
+    return ["OK", hex(result), status_to_bytestr(result)]
 
 def piwatcher_led(state):
     "Switch the PicoWatcher LED on or off"
@@ -74,12 +75,14 @@ def piwatcher_wake(minutes):
     "Set the wake interval for PicoWatcher"
     seconds = min(129600, minutes * 60) # clamp wake delay to 36 hours, to stay within 16-bit limit
     result = i2c.write_word_data(addr, 6, seconds)
+    i2c.read_byte(addr)
     print("PicoWatcher wake", seconds, "result =", result)
 
 def piwatcher_watch(minutes):
     "Set the watch timeout interval for PicoWatcher"
     seconds = min (240, minutes * 60) # clamp wake delay to 240 seconds, to stay within 8-bit limit
     result = i2c.write_byte_data(addr, 5, seconds)
+    i2c.read_byte(addr)
     print("PicoWatcher watch", seconds, "result =", result)
                   
 def picowatcher_rtc(time=None):
@@ -92,6 +95,7 @@ def picowatcher_rtc(time=None):
         time_bytes = struct.pack("HBBBBBBH", *time)
         time_list = list(time_bytes)
         result = i2c.write_i2c_block_data(addr, 3, time_list)
+        i2c.read_byte(addr)
     return result
 
 def system_shutdown(msg="System going down", when="now"):
@@ -182,9 +186,9 @@ def on_message(client, userdata, message):
 
 def on_log(client, userdata, level, buf):
     print("log: ",buf)
-    
+
 client = mqtt.Client("birdbox3")
-client.connect(broker_name)
+client.connect_async(broker_name) # connect in background, in case broker not reachable
 client.on_message=on_message
 client.on_log = on_log
 
