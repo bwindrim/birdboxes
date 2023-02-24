@@ -159,7 +159,7 @@ def on_log(client, userdata, level, buf):
     print("log: ",buf)
     
 client = mqtt.Client("BirdBox1")
-client.connect(broker_name)
+client.connect_async(broker_name) # connect in background, in case broker not reachable
 client.on_message=on_message
 client.on_log = on_log
 
