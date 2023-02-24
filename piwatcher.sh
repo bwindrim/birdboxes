@@ -1,14 +1,14 @@
 #!/bin/bash
 
-/usr/local/bin/piwatcher watch 180  # set 3-minute watchdog timeout
-/usr/local/bin/piwatcher wake 14400 # set to wake after 4 hours
+/usr/sbin/i2cset -y 1 0x41 5   180 b # set 3-minute watch timeout
+/usr/sbin/i2cset -y 1 0x41 6 14400 w # set to wake after 4 hours
 
 counter=15 # 15-minute countdown until shutdown
 
 while true;
 do
     echo "counter = " $counter
-    /usr/local/bin/piwatcher status # >> /dev/null
+    /usr/sbin/i2cget -y 1 0x41 1 b # read the PicoWatcher status to reset watch count
 
     if [ $counter -le 0 ]
     then
