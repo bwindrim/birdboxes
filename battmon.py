@@ -52,18 +52,25 @@ def status_to_bytestr(status):
     if sw_status is 1:
         return b'timer_rebooted'
     return b''
-    
+
+# ToDo: fold these two functions together
 def piwatcher_status():
     "Query PicoWatcher to reset watch timer"
-    result = i2c.read_byte_data(addr, 1)
+    try:
+        result = i2c.read_byte_data(addr, 1)
+    except OSError:
+        return [b'ERR', b'-1', b'OSError']
     print("PicoWatcher status =", result)
-    return [b'OK', hex(result), status_to_bytestr(result)]
+    return [b'OK', bytes(hex(result), 'utf-8'), status_to_bytestr(result)]
 
 def piwatcher_reset():
     "Reset PicoWatcher status register, to clear timer_rebooted, button_pressed, etc."
-    result = i2c.read_byte_data(addr, 4)
+    try:
+        result = i2c.read_byte_data(addr, 4)
+    except OSError:
+        return [b'ERR', b'-1', b'OSError']
     print("PicoWatcher reset =", result)
-    return ["OK", hex(result), status_to_bytestr(result)]
+    return [b"OK", bytes(hex(result), 'utf-8'), status_to_bytestr(result)]
 
 def piwatcher_led(state):
     "Switch the PicoWatcher LED on or off"
@@ -74,15 +81,23 @@ def piwatcher_led(state):
 def piwatcher_wake(minutes):
     "Set the wake interval for PicoWatcher"
     seconds = min(129600, minutes * 60) # clamp wake delay to 36 hours, to stay within 16-bit limit
-    result = i2c.write_word_data(addr, 6, seconds)
-    i2c.read_byte(addr)
+    try:
+        result = i2c.write_word_data(addr, 6, seconds >> 2) # wake interval is sepcified in 2-sec units
+        i2c.read_byte(addr)
+    except OSError:
+        print("PicoWatcher I2C failure: wake")
+        result = None
     print("PicoWatcher wake", seconds, "result =", result)
 
 def piwatcher_watch(minutes):
     "Set the watch timeout interval for PicoWatcher"
     seconds = min (240, minutes * 60) # clamp wake delay to 240 seconds, to stay within 8-bit limit
-    result = i2c.write_byte_data(addr, 5, seconds)
-    i2c.read_byte(addr)
+    try:
+        result = i2c.write_byte_data(addr, 5, seconds)
+        i2c.read_byte(addr)
+    except OSError:
+        print("PicoWatcher I2C failure: watch")
+        result = None
     print("PicoWatcher watch", seconds, "result =", result)
                   
 def picowatcher_rtc(time=None):
@@ -111,7 +126,10 @@ def stop_boot_watchdog():
 
 def getBatteryLevel(numReads=20):
     "Read the battery level from PicoWatcher"
-    level = i2c.read_word_data(addr, 2)
+    try:
+        level = i2c.read_word_data(addr, 2)
+    except OSError:
+        level = None
     return level
 
 def evaluate(now, level):
@@ -224,7 +242,8 @@ try:
     wake_time = noon_tomorrow # default wake-up time
     message = "Default shutdown"
     # Decide how long to stay up, based on time of day and battery level
-    stay_up, wake_time, message = evaluate(now, level)
+    if level is not None:
+        stay_up, wake_time, message = evaluate(now, level)
     print("stay-up duration =", stay_up, "wake-up time =", wake_time)
     client.publish("birdboxes/birdbox3/initial_stay_up", stay_up, retain=True)
     client.publish("birdboxes/birdbox3/wake_time", timestr(wake_time), retain=True)
@@ -234,7 +253,7 @@ try:
         time.sleep(60) # sleep interval shouldn't be longer than half the watchdog time
         now = now + 1  # advance 'now' by one minute
         stay_up = stay_up - 1 # decrement the remaining stay-up duration by one minute
-        client.publish("birdboxes/birdbox3/stay_up", stay_up, retain=False)
+        client.publish("birdboxes/birdbox3/stay_up", stay_up, retain=True)
         status = piwatcher_status()  # reset the watchdog
         level = getBatteryLevel()
         print("now = ", timestr(now), "stay up = ", stay_up, "battery level =", level, "status =", status)
@@ -257,7 +276,7 @@ try:
     client.publish("birdboxes/birdbox3/wake_time", timestr(wake_time), retain=True)
     if exists("/tmp/noshutdown"): # if shutdown is to be blocked
         print("Shutdown blocked by /tmp/noshutdown, deferring by one hour")
-        system_shutdown(message, when="+60")
+        system_shutdown(message, when="+60") # ToDo: fix shutdown deferral (for fledging!)
     else:
         system_shutdown(message)
     # idle loop while we wait for shutdown
