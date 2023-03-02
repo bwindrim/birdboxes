@@ -203,7 +203,7 @@ def on_message(client, userdata, message):
             force_up = None
 
 def on_log(client, userdata, level, buf):
-    print("log: ",buf)
+    print("battmon MQTT: ", buf)
 
 client = mqtt.Client("birdbox3")
 client.connect_async(broker_name) # connect in background, in case broker not reachable
@@ -242,7 +242,7 @@ try:
     wake_time = noon_tomorrow # default wake-up time
     message = "Default shutdown"
     # Decide how long to stay up, based on time of day and battery level
-    if level is not None:
+    if level is not None: # if there wasn't an I2C error reading the level
         stay_up, wake_time, message = evaluate(now, level)
     print("stay-up duration =", stay_up, "wake-up time =", wake_time)
     client.publish("birdboxes/birdbox3/initial_stay_up", stay_up, retain=True)

@@ -4,7 +4,7 @@ After=wg-quick@local.service
 Requires=wg-quick@local.service
 
 [Socket]
-ListenStream=192.168.3.2:3333
+ListenStream=192.168.58.37:3333
 Accept=yes
 
 [Install]
