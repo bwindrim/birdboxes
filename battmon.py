@@ -134,37 +134,21 @@ def getBatteryLevel(numReads=20):
 
 def evaluate(now, level):
     "Decide how long to stay up and to sleep, based on current time-of-day and battery level"
-    if now < minutes(0,5,30): # It's after midnight but before 8:30, power off until 9:00 today
+    if now < minutes(0,5,30): # It's after midnight but before 5:30, power off until 8:00 today
         stay_up = 0
-        wake_time = minutes(0,9,0)
+        wake_time = minutes(0,8,0)
         message = "Night-time immediate shutdown"
         return (stay_up, wake_time, message) # early out
-    elif now < minutes(0,8,30): # It's after 5:30 but before 8:30, stay up for an hour then power off until 9:00 today
+    elif now < minutes(0,7,30): # It's after 5:30 but before 7:30, stay up for an hour then power off until 8:00 today
         stay_up = 60
-        wake_time = minutes(0,9,0)
+        wake_time = minutes(0,8,0)
         message = "Early morning 1-hour shutdown"
         return (stay_up, wake_time, message) # early out
-    elif level >= 80: # 4 battery bars, stay up for 2 hours then power off for 3 hours
-        stay_up = 120
-        wake_time = now + stay_up + 180
+    elif True: # level >= 80: # battery OK, stay up for 4 hours then power off for 2 hours
+        stay_up = 15 # 240
+        wake_time = now + stay_up + 15 # 120
         message = "Scheduled two-hour shutdown"
-    elif level >= 70: # 3-4 battery bars, stay up for 1 hour then power off for 4 hours
-        stay_up = 60
-        wake_time = now + stay_up + 240
-        message = "Scheduled one-hour shutdown"
-    elif level >= 60: # 3 battery bars, stay up for 40 minutes then power off for 5 1/3 hours
-        stay_up = 40
-        wake_time = now + stay_up + 260
-        message = "Scheduled half-hour shutdown"
-    elif level >= 50: # 2-3 battery bars, stay up for 30 minutes then power off until 9:00 tomorrow
-        stay_up = 30
-        wake_time = minutes(1,9,0)
-        message = "Scheduled half-hour shutdown"
-    elif level >= 40: # 2 battery bars, stay up for 15 minutes then power off until 9:00 tomorrow
-        stay_up = 15
-        wake_time = minutes(1,9,0)
-        message = "Scheduled 15-minute shutdown"
-    else: # Battery critical, power off immediately until 12:00 tomorrow
+    else: # Battery low, power off immediately until 12:00 tomorrow
         stay_up = 0
         wake_time = minutes(1,12,0)
         message = "Emergency shutdown"
