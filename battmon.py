@@ -144,9 +144,9 @@ def evaluate(now, level):
         wake_time = minutes(0,8,0)
         message = "Early morning 1-hour shutdown"
         return (stay_up, wake_time, message) # early out
-    elif True: # level >= 43000: # battery OK, stay up for 4 hours then power off for 2 hours
-        stay_up = 15 # 240
-        wake_time = now + stay_up + 15 # 120
+    elif level >= 43000: # battery OK, stay up for 4 hours then power off for 2 hours
+        stay_up = 240
+        wake_time = now + stay_up + 120
         message = "Scheduled two-hour shutdown"
     else: # Battery low, power off immediately until 12:00 tomorrow
         stay_up = 0
@@ -237,15 +237,15 @@ try:
         time.sleep(60) # sleep interval shouldn't be longer than half the watchdog time
         now = now + 1  # advance 'now' by one minute
         stay_up = stay_up - 1 # decrement the remaining stay-up duration by one minute
-        client.publish("birdboxes/birdbox3/stay_up", stay_up, retain=True)
         status = piwatcher_status()  # reset the watchdog
         level = getBatteryLevel()
         print("now = ", timestr(now), "stay up = ", stay_up, "battery level =", level, "status =", status)
+        client.publish("birdboxes/birdbox3/stay_up", stay_up, retain=True)
         client.publish("birdboxes/birdbox3/battery_level", level, retain=True)
         if len(status) >= 2:
             client.publish("birdboxes/birdbox3/status", int(status[1], base=16), retain=True)
         if b'button_pressed' in status: # shutdown immediately
-#            piwatcher_reset()        # clear the PiWatcher status
+            piwatcher_reset()        # clear the PiWatcher status
             stay_up = 0
             message = "Button pressed, immediate shutdown"
         if exists("/tmp/shutdown"): # if shutdown requested
@@ -258,6 +258,7 @@ try:
     print("Shutting down, wake time is", timestr(wake_time))
     client.publish("birdboxes/birdbox3/shutdown_time", time.asctime(), retain=True)
     client.publish("birdboxes/birdbox3/wake_time", timestr(wake_time), retain=True)
+    client.publish("birdboxes/birdbox3/message", message, retain=True)
     if exists("/tmp/noshutdown"): # if shutdown is to be blocked
         print("Shutdown blocked by /tmp/noshutdown, deferring by one hour")
         system_shutdown(message, when="+60") # ToDo: fix shutdown deferral (for fledging!)
