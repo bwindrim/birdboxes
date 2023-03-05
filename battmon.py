@@ -82,7 +82,7 @@ def piwatcher_wake(minutes):
     "Set the wake interval for PicoWatcher"
     seconds = min(129600, minutes * 60) # clamp wake delay to 36 hours, to stay within 16-bit limit
     try:
-        result = i2c.write_word_data(addr, 6, seconds >> 2) # wake interval is sepcified in 2-sec units
+        result = i2c.write_word_data(addr, 6, (seconds + 1) >> 2) # wake interval is specified in 2-sec units
         i2c.read_byte(addr)
     except OSError:
         print("PicoWatcher I2C failure: wake")
@@ -144,7 +144,7 @@ def evaluate(now, level):
         wake_time = minutes(0,8,0)
         message = "Early morning 1-hour shutdown"
         return (stay_up, wake_time, message) # early out
-    elif True: # level >= 80: # battery OK, stay up for 4 hours then power off for 2 hours
+    elif True: # level >= 43000: # battery OK, stay up for 4 hours then power off for 2 hours
         stay_up = 15 # 240
         wake_time = now + stay_up + 15 # 120
         message = "Scheduled two-hour shutdown"
@@ -152,9 +152,9 @@ def evaluate(now, level):
         stay_up = 0
         wake_time = minutes(1,12,0)
         message = "Emergency shutdown"
-    wake_time = wake_time // 15 * 15 # Round wake time down to nearest 15 minutes
+    wake_time = (wake_time + 14) // 15 * 15 # Round wake time *up* to nearest 15 minutes
     if wake_time >= minutes(0,23,0): # wake is 11PM or later
-        wake_time = max(wake_time, minutes(1,9,0)) # Don't bother waking until 9am
+        wake_time = max(wake_time, minutes(1,8,0)) # Don't bother waking until 9am
     return (stay_up, wake_time, message)
 
 def timestr(time):
@@ -190,13 +190,13 @@ def on_log(client, userdata, level, buf):
     print("battmon MQTT: ", buf)
 
 client = mqtt.Client("birdbox3")
-client.connect_async(broker_name) # connect in background, in case broker not reachable
 client.on_message=on_message
 client.on_log = on_log
+client.connect_async(broker_name) # connect in background, in case broker not reachable
 
 # main program 
 try:
-    client.loop_start() # start the loop in a thread
+    client.loop_start() # start the MQTT client loop in a thread
     stop_boot_watchdog()     # stop the boot watchdog script, as we're taking over its job
     initial_status = piwatcher_status() # store the piwatcher status
     print("PiWatcher initial status =", initial_status)    # log the status
