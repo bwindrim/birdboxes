@@ -245,12 +245,12 @@ try:
         if len(status) >= 2:
             client.publish("birdboxes/birdbox3/status", int(status[1], base=16), retain=True)
         if b'button_pressed' in status: # shutdown immediately
-            piwatcher_reset()        # clear the PiWatcher status
             stay_up = 0
             message = "Button pressed, immediate shutdown"
         if exists("/tmp/shutdown"): # if shutdown requested
             stay_up = 0
             message = "/tmp/shutdown detected, immediate shutdown"
+        piwatcher_reset()        # clear the PiWatcher status
     # We've left the loop, initiate shutdown
     piwatcher_watch(3)      # set 3-minute watchdog timeout, again, in case it was cancelled by user
     piwatcher_led(True)     # turn on the PiWatcher's LED
