@@ -7,7 +7,7 @@ from machine import Pin, RTC, ADC, WDT, lightsleep
 from i2c_responder import I2CResponder
 from struct import pack, unpack
 
-micropython.opt_level(0) # zero is default, i.e. assertions are enabled
+micropython.opt_level(1) # zero is default, i.e. assertions are enabled
 
 btn = Pin(12, Pin.IN, Pin.PULL_UP) # push-button input
 pwr = Pin(22, Pin.OPEN_DRAIN, value=1)    # wide-input shim enable, pull low for power off
@@ -71,8 +71,8 @@ if status is machine.WDT_RESET:
 else:
     assert(status is machine.PWRON_RESET)
     print("Power-on reset")
-watch_seconds = 0 # should be 4 minutes, in case Pi is hung when Pico restarts
-wake_seconds  = 30 # should be 15 minutes, so Pi doesn't stay off
+watch_seconds = 240 # should be 4 minutes, in case Pi is hung when Pico restarts
+wake_seconds  = 900 # should be 15 minutes, so Pi doesn't stay off
 wdt = WDT(timeout=8388) # set ~8 sec (max) watchdog timeout
 
 try:
