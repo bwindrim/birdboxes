@@ -80,6 +80,8 @@ def piwatcher_led(state):
 
 def piwatcher_wake(minutes):
     "Set the wake interval for PicoWatcher"
+    while minutes < 0:
+        minutes = minutes + 1440 # adjust for day crossings (*hack*)
     seconds = min(129600, minutes * 60) # clamp wake delay to 36 hours, to stay within 16-bit limit
     try:
         result = i2c.write_word_data(addr, 6, (seconds + 1) >> 2) # wake interval is specified in 2-sec units
@@ -154,7 +156,7 @@ def evaluate(now, level):
         message = "Emergency shutdown"
     wake_time = max(15, (wake_time // 15) * 15) # Round wake time *down* to nearest 15 minutes, but no less than 15
     if wake_time >= minutes(0,23,0): # wake is 11PM or later
-        wake_time = max(wake_time, minutes(1,8,0)) # Don't bother waking until 9am
+        wake_time = max(wake_time, minutes(1,8,0)) # Don't bother waking until 8am
     return (stay_up, wake_time, message)
 
 def timestr(time):
@@ -208,6 +210,7 @@ try:
     # All absolute times are in minutes from the start of today (00:00)
     t = time.localtime()
     now = t.tm_hour*60 + t.tm_min # minute in the day
+    start_day = t.tm_day
     noon_today = minutes(0,12,0)
     noon_tomorrow = minutes(1,12,0)
     print ("now =", now, "noon today =", noon_today, "noon tomorrow =", noon_tomorrow)
@@ -252,6 +255,9 @@ try:
             message = "/tmp/shutdown detected, immediate shutdown"
         piwatcher_reset()        # clear the PiWatcher status
     # We've left the loop, initiate shutdown
+    t = time.localtime() # get an accurate value for now
+    now = t.tm_hour*60 + t.tm_min # minute in the day
+    now = now + 1440*(t.tm_day - start_day) # adjust for any day crossings since boot (ToDo: incomplete)
     piwatcher_watch(3)      # set 3-minute watchdog timeout, again, in case it was cancelled by user
     piwatcher_led(True)     # turn on the PiWatcher's LED
     piwatcher_wake(wake_time - now - 3) # set the wake-up interval
