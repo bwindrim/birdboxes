@@ -152,7 +152,7 @@ def evaluate(now, level):
         stay_up = 0
         wake_time = minutes(1,12,0)
         message = "Emergency shutdown"
-    wake_time = (wake_time + 14) // 15 * 15 # Round wake time *up* to nearest 15 minutes
+    wake_time = max(15, (wake_time // 15) * 15) # Round wake time *down* to nearest 15 minutes, but no less than 15
     if wake_time >= minutes(0,23,0): # wake is 11PM or later
         wake_time = max(wake_time, minutes(1,8,0)) # Don't bother waking until 9am
     return (stay_up, wake_time, message)
@@ -231,7 +231,7 @@ try:
     print("stay-up duration =", stay_up, "wake-up time =", wake_time)
     client.publish("birdboxes/birdbox3/initial_stay_up", stay_up, retain=True)
     client.publish("birdboxes/birdbox3/wake_time", timestr(wake_time), retain=True)
-    # Main watchdog wakeup loop
+    # Main watcher loop
     while stay_up > 0:
         # Sleep for one minute
         time.sleep(60) # sleep interval shouldn't be longer than half the watchdog time
