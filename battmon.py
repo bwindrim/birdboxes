@@ -159,6 +159,8 @@ def evaluate(now, level):
         wake_time = wake_time + 15
     if wake_time >= minutes(0,23,0): # wake is 11PM or later
         wake_time = max(wake_time, minutes(1,8,0)) # Don't bother waking until 8am
+    if (now + stay_up) > minutes(1,0,0): # don't stay up past midnight
+        stay_up = minutes(1,0,0) - now
     return (stay_up, wake_time, message)
 
 def timestr(time):
