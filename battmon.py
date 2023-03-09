@@ -1,10 +1,12 @@
 import sys
 import time
 import subprocess
+import smbus # for I2C
 import RPi.GPIO as GPIO
 import paho.mqtt.client as mqtt
 from datetime import datetime
 from os.path import exists
+from systemd_service import Service
 
 broker_name = "192.168.3.1" # WG address of Pi2B
 
@@ -18,6 +20,12 @@ force_up = None
 
 GPIO.setup(battery, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
+# Set up I2C link to the PiWatcher
+i2c = smbus.SMBus(1)
+addr = 0x62
+
+piwatcher_svc = Service("piwatcher")
+
 def hours(num):
     "Returns the duration in minutes of the specified number of hours"
     return num*60
@@ -26,45 +34,74 @@ def minutes(days, hours, mins):
     "TBD"
     return ((days*24 + hours) * 60 + mins)
 
+def status_to_bytestr(status):
+    "Convert PiWatcher status to a readable string"
+    if (status & 0x20) != 0:
+        return b'button_rebooted '
+    if (status & 0x80) != 0:
+        return b'button_pressed '
+    if (status & 0x40) != 0:
+        return b'timer_rebooted '
+    return b''
+
 def piwatcher_status():
     "Query PiWatcher to reset watchdog timer"
-    result = subprocess.run(["/usr/local/bin/piwatcher", "status"], capture_output=True)
-#    print("PiWatcher status =", result)
-    return result.stdout.split()
+    try:
+        result = i2c.read_byte_data(addr, 0)
+    except OSError:
+        print("PiWatcher I2C failure: status read")
+        return [b'ERR', b'-1', b'OSError']
+    print("PiWatcher status =", result)
+    return [b'OK', bytes(hex(result), 'utf-8'), status_to_bytestr(result)]
 
 def piwatcher_reset():
     "Reset PiWatcher status register, to clear timer_rebooted, button_pressed, etc."
-    result = subprocess.run(["/usr/local/bin/piwatcher", "reset"], capture_output=True)
-    print("PiWatcher status =", result)
+    try:
+        result = i2c.write_byte_data(addr, 0, 0xFF)
+    except OSError:
+        print("PiWatcher I2C failure: reset write")
 
 def piwatcher_led(state):
     "Switch the PiWatcher LED on or off"
-    setting = "off"
+    setting = 0x81
     if state:
-        setting = "on"
-#     result = subprocess.run(["/usr/local/bin/piwatcher", "led", setting], capture_output=True)
-#     print("PiWatcher status =", result)
+        setting = 0x82
+    try:
+        result = i2c.read_byte_data(addr, 8)
+    except OSError:
+        print("PiWatcher I2C failure: LED version read")
+        return
+    if (result < 2) or (result == 0xFF):
+        print("PiWatcher: wrong firmware version for LED control")
+        return
+    try:
+        result = i2c.write_byte_data(addr, 8, setting)
+    except OSError:
+        print("PiWatcher I2C failure: LED write")
+    
 
 def piwatcher_wake(minutes):
     "Set the wake interval for PiWatcher"
-    if minutes < 10:
-        minutes = 10 # enforce minimum wake interval
-    seconds = minutes * 60
-    if seconds > 129600: # clamp wake delay to 36 hours, to stay within limit
-        seconds = 129600
-    result = subprocess.run(["/usr/local/bin/piwatcher", "wake", str(seconds)], capture_output=True)
+    while minutes < 0:
+        minutes = minutes + 1440 # adjust for day crossings (*hack*)
+    seconds = min(129600, minutes * 60) # clamp wake delay to 36 hours, to stay within 16-bit limit
+    try:
+        result = i2c.write_word_data(addr, 2, (seconds + 1) >> 2) # wake interval is specified in 2-sec units
+    except OSError:
+        print("PiWatcher I2C failure: wake")
+        result = None
     print("PiWatcher wake", seconds, "result =", result)
 
 def piwatcher_watch(minutes):
-    if minutes < 3: # enforce minimum watch time
-        minutes = 3
     "Set the watchdog timeout interval for PiWatcher"
-    seconds = minutes * 60
-    if seconds > 255:
-        seconds = 255 # don't exceed hw-defined limit
-    result = subprocess.run(["/usr/local/bin/piwatcher", "watch", str(seconds)], capture_output=True)
+    seconds = min (240, minutes * 60) # clamp wake delay to 240 seconds, to stay within 8-bit limit
+    try:
+        result = i2c.write_byte_data(addr, 1, (seconds & 0xFF))
+    except OSError:
+        print("PiWatcher I2C failure: watch")
+        result = None
     print("PiWatcher watch", seconds, "result =", result)
-
+                  
 def system_shutdown(msg="System going down", when="now"):
     "Shut down the system"
     print("Shutdown:", msg)
@@ -73,7 +110,8 @@ def system_shutdown(msg="System going down", when="now"):
 
 def stop_boot_watchdog():
     "Stop the piwatcher service"
-    result = subprocess.run(["/bin/systemctl", "stop", "piwatcher.service"])
+#     result = subprocess.run(["/bin/systemctl", "stop", "piwatcher.service"])
+    result = piwatcher_svc.stop()
     print("stop piwatcher =", result)
 
 def getBatteryLevel(numReads=20):
