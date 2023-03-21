@@ -85,12 +85,22 @@ def piwatcher_wake(minutes):
     while minutes < 0:
         minutes = minutes + 1440 # adjust for day crossings (*hack*)
     seconds = min(129600, minutes * 60) # clamp wake delay to 36 hours, to stay within 16-bit limit
-    try:
-        result = i2c.write_word_data(addr, 2, (seconds + 1) >> 2) # wake interval is specified in 2-sec units
-    except OSError:
-        print("PiWatcher I2C failure: wake")
-        result = None
+#     try:
+#         result = i2c.write_word_data(addr, 2, (seconds + 1) >> 2) # wake interval is specified in 2-sec units
+#     except OSError:
+#         print("PiWatcher I2C failure: wake")
+#         result = None
+#     print("PiWatcher wake", seconds, "result =", result)
+# def piwatcher_wake(minutes):
+#     "Set the wake interval for PiWatcher"
+#     if minutes < 10:
+#         minutes = 10 # enforce minimum wake interval
+#     seconds = minutes * 60
+#     if seconds > 129600: # clamp wake delay to 36 hours, to stay within limit
+#         seconds = 129600
+    result = subprocess.run(["/usr/local/bin/piwatcher", "wake", str(seconds)], capture_output=True)
     print("PiWatcher wake", seconds, "result =", result)
+
 
 def piwatcher_watch(minutes):
     "Set the watchdog timeout interval for PiWatcher"
