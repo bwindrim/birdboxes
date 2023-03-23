@@ -10,6 +10,12 @@ from systemd_service import Service
 
 broker_name = "192.168.3.1" # WG address of Pi2B
 
+# Day numbers relative to the day of boot. These are currently
+# constants, and assume that we aren't going to stay up past midnight
+# on any boot day, but this may change in future.
+today = 0
+tomorrow = 1
+
 # Use BCM GPIO references instead of physical pin numbers
 GPIO.setmode(GPIO.BCM)
 
@@ -30,8 +36,8 @@ def hours(num):
     "Returns the duration in minutes of the specified number of hours"
     return num*60
 
-def minutes(days, hours, mins):
-    "TBD"
+def minutes(days, hours, mins=0):
+    "Returns the duration in minutes of the specified number of days, hours, and (optionally) minutes"
     return ((days*24 + hours) * 60 + mins)
 
 def status_to_bytestr(status):
@@ -135,14 +141,14 @@ def getBatteryLevel(numReads=20):
 
 def evaluate(now, level):
     "Decide how long to stay up and to sleep, based on current time-of-day and battery level"
-    if now < minutes(0,5,30): # It's after midnight but before 8:30, power off until 9:00 today
+    if now < minutes(today,5,30): # It's after midnight but before 8:30, power off until 9:00 today
         stay_up = 0
-        wake_time = minutes(0,9,0)
+        wake_time = minutes(today,9,0)
         message = "Night-time immediate shutdown"
         return (stay_up, wake_time, message) # early out
-    elif now < minutes(0,8,30): # It's after 5:30 but before 8:30, stay up for an hour then power off until 9:00 today
+    elif now < minutes(today,8,30): # It's after 5:30 but before 8:30, stay up for an hour then power off until 9:00 today
         stay_up = 60
-        wake_time = minutes(0,9,0)
+        wake_time = minutes(today,9,0)
         message = "Early morning 1-hour shutdown"
         return (stay_up, wake_time, message) # early out
     elif level >= 80: # 4 battery bars, stay up for 2 hours then power off for 3 hours
@@ -159,19 +165,19 @@ def evaluate(now, level):
         message = "Scheduled half-hour shutdown"
     elif level >= 50: # 2-3 battery bars, stay up for 30 minutes then power off until 9:00 tomorrow
         stay_up = 30
-        wake_time = minutes(1,9,0)
+        wake_time = minutes(tomorrow,9,0)
         message = "Scheduled half-hour shutdown"
     elif level >= 40: # 2 battery bars, stay up for 15 minutes then power off until 9:00 tomorrow
         stay_up = 15
-        wake_time = minutes(1,9,0)
+        wake_time = minutes(tomorrow,9,0)
         message = "Scheduled 15-minute shutdown"
     else: # Battery critical, power off immediately until 12:00 tomorrow
         stay_up = 0
-        wake_time = minutes(1,12,0)
+        wake_time = minutes(tomorrow,12,0)
         message = "Emergency shutdown"
     wake_time = wake_time // 15 * 15 # Round wake time down to nearest 15 minutes
-    if wake_time >= minutes(0,23,0): # wake is 11PM or later
-        wake_time = max(wake_time, minutes(1,9,0)) # Don't bother waking until 9am
+    if wake_time >= minutes(today,23,0): # wake is 11PM or later
+        wake_time = max(wake_time, minutes(tomorrow,9,0)) # Don't bother waking until 9am
     return (stay_up, wake_time, message)
 
 def timestr(time):
@@ -192,20 +198,32 @@ def test_all():
         test(level)
 
 # MQTT setup
-def on_message(client, userdata, message):
-    if message.retain:
-        print(message.topic, "=", str(message.payload.decode("utf-8")), "(retained)")
-    else:
-        print(message.topic, "=", str(message.payload.decode("utf-8")), "(live)")
-    if message.topic is "birdboxes/testbed/force_up":
-        if message.payload:
-            force_up = bool(int.from_bytes(message.payload, byteorder='little'))
-        else:
-            force_up = None
+bb_subscribe_list = [
+"force_up"
+]
 
 def on_log(client, userdata, level, buf):
     print("log: ",buf)
     
+def on_message(client, userdata, message):
+    print(message.topic, "=", str(message.payload.decode("utf-8")), end='')
+    if message.retain:
+        print(" (retained)")
+    else:
+        print(" (live)")
+    if message.topic == "birdboxes/testbed/force_up" and not message.retain:
+        if message.payload:
+            force_up = bool(int.from_bytes(message.payload, byteorder='little'))
+            piwatcher_led(True)
+        else:
+            force_up = None
+            piwatcher_led(False)
+
+def list_subscribe(root, topic, subscribe_list):
+    "Subscribe to a list of MQTT topics"
+    for subtopic in subscribe_list:
+        client.subscribe(root + '/' + topic + '/' + subtopic)
+
 client = mqtt.Client("TestBed")
 client.connect_async(broker_name) # connect in background, in case broker not reachable
 client.on_message=on_message
@@ -215,6 +233,7 @@ client.on_log = on_log
 try:
     client.loop_start() # start the loop in a thread
     stop_boot_watchdog()     # stop the boot watchdog script, as we're taking over its job
+    list_subscribe("birdboxes","testbed", bb_subscribe_list)
     initial_status = piwatcher_status() # store the piwatcher status
     print("PiWatcher initial status =", initial_status)    # log the status
     if len(initial_status) >= 2:
@@ -222,11 +241,11 @@ try:
     piwatcher_reset()        # clear the PiWatcher status
     piwatcher_led(False)     # turn off the PiWatcher's LED
     piwatcher_watch(3)       # set 3-minute watchdog timeout
-    # All absolute times are in minutes from the start of today (00:00)
+    # All absolute times are in minutes from the beginning of the boot day (00:00)
     t = time.localtime()
     now = t.tm_hour*60 + t.tm_min # minute in the day
-    noon_today = minutes(0,12,0)
-    noon_tomorrow = minutes(1,12,0)
+    noon_today = minutes(today,12,0)
+    noon_tomorrow = minutes(tomorrow,12,0)
     print ("now =", now, "noon today =", noon_today, "noon tomorrow =", noon_tomorrow)
     client.publish("birdboxes/testbed/startup_time", time.asctime(), retain=True)
     # Set a default wake interval, as a backstop
