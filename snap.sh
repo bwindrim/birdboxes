@@ -1,6 +1,6 @@
 #!/bin/bash
 
-FILE=$(date +"BB3_%FT%H-%M-%S.jpg")
+FILE=$(date +"BB3_%FT%H:%M:%S.jpg")
 LOCAL_PATH=/mnt/local/timelapse
 REMOTE_PATH=/mnt/remote/birdbox3/timelapse
 
