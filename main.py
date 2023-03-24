@@ -46,6 +46,7 @@ def pi_power_on():
     "Enable +5V power to the Pi by turning on the wide-input shim"
     # Sample the VSYS voltage before tuning on the power, that way
     # we get the secondary battery level
+    global adc2_value
     adc2_value = adc2.read_u16()
     pwr.on()
     led.on()
