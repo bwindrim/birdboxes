@@ -7,6 +7,16 @@ from machine import Pin, RTC, ADC, WDT, lightsleep
 from i2c_responder import I2CResponder
 from struct import pack, unpack
 
+# I2C register numbers:
+# 1 - status register (read to reset watch countdown)
+# 2 - ADC value (2 bytes, read-only)
+# 3 - RTC date&time (10 bytes, read&write)
+# 4 - status register read and clear (1 bytes, read-only)
+# 5 - watch time (1 byte, read&write)
+# 6 - wake time (2 bytes, read&write)
+# 7 - ADC2 value (2 bytes, read-only)
+# 8 - LED control (1 byte, read&write)
+
 micropython.opt_level(1) # zero is default, i.e. assertions are enabled
 
 btn = Pin(12, Pin.IN, Pin.PULL_UP) # push-button input
@@ -15,6 +25,7 @@ led = Pin(25, Pin.OUT, value=1)    # Pico LED control
 sda = Pin(26, Pin.IN, Pin.PULL_UP) # when using ADC pins for I2C...
 scl = Pin(27, Pin.IN, Pin.PULL_UP) # ...we need to turn on the pull-ups
 adc = ADC(Pin(28)) # main battery voltage measurement
+adc2 = ADC(Pin(29)) # secondary battery voltage measurement
 rtc = RTC()
 i2c = I2CResponder(1, sda_gpio=26, scl_gpio=27, responder_address=0x41)
 
@@ -42,18 +53,19 @@ def pi_power_on():
 def suspend(interval_s):
     "Sleep for the specified number of seconds, or until button pressed"
     reason = 0x10
+    blink_ms = 10
     if do_prt >= 2:
         print("Sleeping for", interval_s, "s...")
     while interval_s > 0 and btn.value() is 1: # TBD: fix for interval_s % 5 != 0
         wdt.feed() # the watchdog timer appears to keep running during lightsleep()
         delay = min(interval_s*1000, 5000) # sleep for <= 5 seconds at a time
         if do_prt >= 2:
-            time.sleep_ms(delay - 1)
+            time.sleep_ms(delay - blink_ms)
         else:
-            lightsleep(delay - 1)
+            lightsleep(delay - blink_ms)
         # blink the LED
         led.on()
-        time.sleep_ms(1)
+        time.sleep_ms(blink_ms) # ToDo: make this lightsleep() ?
         led.off()
         interval_s -= 5
     if interval_s > 0: # it was the button press that exited the loop
@@ -107,6 +119,12 @@ try:
                     prefix_reg = 0
                     if do_prt >= 1:
                         print("WAKE set to", wake_seconds)
+                elif prefix_reg is 8 and len(data) is 1: # LED value (1 byte)
+                    led_value = int.from_bytes(data, 'little', False)
+                    led.value(led_value) # Pin.value() accepts any non-zero value as 'on'
+                    prefix_reg = 0
+                    if do_prt >= 1:
+                        print("LED set to", led_value)
                 elif prefix_reg is 3 and len(data) is 10: # RTC date/time
                     rtc.datetime(unpack("HBBBBBBH", data))
                     prefix_reg = 0
@@ -149,6 +167,18 @@ try:
                 assert(len(data) == 2)
                 if do_prt >= 2:
                     print("WAKE:", wake_seconds)
+            elif prefix_reg == 7: # ADC2 value
+                value = adc2.read_u16()
+                data = value.to_bytes(2,'little')
+                assert(len(data) == 2)
+                if do_prt >= 1:
+                    print("ADC2:", value)
+            elif prefix_reg == 8: # LED on/off value (1 byte)
+                led_value = led.value()
+                data = led_value.to_bytes(1, 'little')
+                assert(len(data) == 1)
+                if do_prt >= 2:
+                    print("LED:", led_value)
             else: # return a zero byte for all unrecognised regs
                 data = b'\x00'
                 assert(len(data) == 1)

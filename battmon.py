@@ -20,6 +20,16 @@ GPIO.setmode(GPIO.BCM)
 # Define GPIO signals to use
 battery = [6,12,13,26]
 
+# PicoWatcher I2C register numbers:
+# 1 - status register (read to reset watch countdown)
+# 2 - ADC value (2 bytes, read-only)
+# 3 - RTC date&time (10 bytes, read&write)
+# 4 - status register read and clear (1 bytes, read-only)
+# 5 - watch time (1 byte, read&write)
+# 6 - wake time (2 bytes, read&write)
+# 7 - ADC2 value (2 bytes, read-only)
+# 8 - LED control (1 byte, read&write)
+
 force_up = None
 
 GPIO.setup(battery, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -74,10 +84,14 @@ def piwatcher_reset():
 
 def piwatcher_led(state):
     "Switch the PicoWatcher LED on or off"
-    setting = "off"
-    if state:
-        setting = "on"
-
+    try:
+        result = i2c.write_byte_data(addr, 8, state)
+        i2c.read_byte(addr) # dummy read
+    except OSError:
+        print("PicoWatcher I2C failure: LED write")
+        result = None
+    print("PicoWatcher LED =", state)
+    
 def piwatcher_wake(minutes):
     "Set the wake interval for PicoWatcher"
     while minutes < 0:
@@ -85,7 +99,7 @@ def piwatcher_wake(minutes):
     seconds = min(129600, minutes * 60) # clamp wake delay to 36 hours, to stay within 16-bit limit
     try:
         result = i2c.write_word_data(addr, 6, (seconds + 1) >> 2) # wake interval is specified in 2-sec units
-        i2c.read_byte(addr)
+        i2c.read_byte(addr) # dummy read
     except OSError:
         print("PicoWatcher I2C failure: wake")
         result = None
@@ -96,7 +110,7 @@ def piwatcher_watch(minutes):
     seconds = min (240, minutes * 60) # clamp wake delay to 240 seconds, to stay within 8-bit limit
     try:
         result = i2c.write_byte_data(addr, 5, seconds)
-        i2c.read_byte(addr)
+        i2c.read_byte(addr) # dummy read
     except OSError:
         print("PicoWatcher I2C failure: watch")
         result = None
@@ -112,7 +126,7 @@ def picowatcher_rtc(time=None):
         time_bytes = struct.pack("HBBBBBBH", *time)
         time_list = list(time_bytes)
         result = i2c.write_i2c_block_data(addr, 3, time_list)
-        i2c.read_byte(addr)
+        i2c.read_byte(addr) # dummy read
     return result
 
 def system_shutdown(msg="System going down", when="now"):
@@ -126,11 +140,12 @@ def stop_boot_watchdog():
     result = subprocess.run(["/bin/systemctl", "stop", "piwatcher.service"])
     print("stop piwatcher =", result)
 
-def getBatteryLevel(numReads=20):
+def getBatteryLevel(reg=2):
     "Read the battery level from PicoWatcher"
     try:
-        level = i2c.read_word_data(addr, 2)
+        level = i2c.read_word_data(addr, reg)
     except OSError:
+        print("PicoWatcher read failure: battery level", reg)
         level = None
     return level
 
@@ -226,8 +241,10 @@ try:
         piwatcher_wake(noon_today - now) # wake today
     # Read the battery level from the solar controller
     level = getBatteryLevel()
-    print ("Battery level = ", level)
+    level2 = getBatteryLevel(7)
+    print ("Battery levels: primary =", level, "secondary =", level2)
     client.publish("birdboxes/birdbox3/initial_battery_level", level, retain=True)
+    client.publish("birdboxes/birdbox3/initial_battery2_level", level2, retain=True)
 
     stay_up = 15 # default 15-minute time before shutting down, overridden below
     wake_time = noon_tomorrow # default wake-up time
@@ -249,6 +266,7 @@ try:
         print("now = ", timestr(now), "stay up = ", stay_up, "battery level =", level, "status =", status)
         client.publish("birdboxes/birdbox3/stay_up", stay_up, retain=True)
         client.publish("birdboxes/birdbox3/battery_level", level, retain=True)
+        client.publish("birdboxes/birdbox3/battery2_level", getBatteryLevel(7), retain=True)
         if len(status) >= 2:
             client.publish("birdboxes/birdbox3/status", int(status[1], base=16), retain=True)
         if b'button_pressed' in status: # shutdown immediately
