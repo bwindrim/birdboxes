@@ -266,7 +266,6 @@ try:
         print("now = ", timestr(now), "stay up = ", stay_up, "battery level =", level, "status =", status)
         client.publish("birdboxes/birdbox3/stay_up", stay_up, retain=True)
         client.publish("birdboxes/birdbox3/battery_level", level, retain=True)
-        client.publish("birdboxes/birdbox3/battery2_level", getBatteryLevel(7), retain=True)
         if len(status) >= 2:
             client.publish("birdboxes/birdbox3/status", int(status[1], base=16), retain=True)
         if b'button_pressed' in status: # shutdown immediately

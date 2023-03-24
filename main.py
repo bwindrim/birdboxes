@@ -31,6 +31,7 @@ i2c = I2CResponder(1, sda_gpio=26, scl_gpio=27, responder_address=0x41)
 
 do_prt = 0
 btn_down = False
+adc2_value = 0
 
 def pi_power_off():
     "Disable +5V power to the Pi by turning off the wide-input shim"
@@ -43,6 +44,9 @@ def pi_power_off():
 
 def pi_power_on():
     "Enable +5V power to the Pi by turning on the wide-input shim"
+    # Sample the VSYS voltage before tuning on the power, that way
+    # we get the secondary battery level
+    adc2_value = adc2.read_u16()
     pwr.on()
     led.on()
     # turn the pull-ups back on
@@ -168,7 +172,7 @@ try:
                 if do_prt >= 2:
                     print("WAKE:", wake_seconds)
             elif prefix_reg == 7: # ADC2 value
-                value = adc2.read_u16()
+                value = adc2_value # use the value that we read prior to power-on
                 data = value.to_bytes(2,'little')
                 assert(len(data) == 2)
                 if do_prt >= 1:
