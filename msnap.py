@@ -33,6 +33,8 @@ m = Mastodon(access_token="PUcFR0KDRa9M36DaJ1ZkSSXljPj1lK91pkqAMnDyYHQ", api_bas
 
 with PiCamera() as camera:
     camera.resolution = (640, 480)
+    camera.awb_mode = 'off'
+    camera.awb_gains = (1.0, 1.0)
     camera.capture(local_file)
     camera.stop_preview()
 
