@@ -211,11 +211,7 @@ def on_message(client, userdata, message):
         print(" (retained)")
     else:
         print(" (live)")
-<<<<<<< HEAD
     if message.topic == "birdboxes/testbed/force_up" and not message.retain:
-=======
-    if message.topic == "birdboxes/testbed/force_up":
->>>>>>> 15e2b3958333e77feacc6c01f8d68cbd4ffcf8aa
         if message.payload:
             force_up = bool(int.from_bytes(message.payload, byteorder='little'))
             piwatcher_led(True)
