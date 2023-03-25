@@ -19,6 +19,9 @@ else:
         if c.isupper() or c.isdigit():
             prefix += c
 
+# Ensure that any files we create are read-only
+os.umask (0o222)
+
 dtime = datetime.now()
 filename = prefix + "_" + dtime.isoformat(timespec='seconds') + ".jpg"
 local_dir = "/mnt/local/timelapse"
