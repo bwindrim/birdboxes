@@ -274,6 +274,10 @@ try:
         if exists("/tmp/shutdown"): # if shutdown requested
             stay_up = 0
             message = "/tmp/shutdown detected, immediate shutdown"
+        if exists("/tmp/emergency_shutdown"): # if emergency shutdown requested
+            stay_up = 0
+            wake_time = minutes(1,12,0)
+            message = "/tmp/emergency_shutdown detected, shutting down until noon tomorrow"
         piwatcher_reset()        # clear the PiWatcher status
     # We've left the loop, initiate shutdown
     t = time.localtime() # get an accurate value for now

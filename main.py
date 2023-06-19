@@ -208,6 +208,8 @@ try:
             status |= suspend(wake_seconds) # merge the wakeup reason into status
             pi_power_on() # restore power to the Pi
             ticks_base = time.ticks_ms() # reset the watch
+            wake_seconds = 86400 - watch_seconds # sleep for 25 hours, unless changed via I2C
+            watch_seconds = 240
 
         # At the tail of the loop we give the garbage collector its own watchdog slice to run in
         wdt.feed()
