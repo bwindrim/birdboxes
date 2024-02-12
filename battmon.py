@@ -51,15 +51,15 @@ def status_to_bytestr(status):
     hw_status = status & 0x0F
     sw_status = (status & 0x30) >> 4
     print("status =", status, "hw_status =", hw_status, "sw_status =", sw_status)
-    if hw_status is WDT_RESET:
+    if hw_status == WDT_RESET:
         return b'watchdog_reset'
-    if hw_status is PWRON_RESET:
+    if hw_status == PWRON_RESET:
         return b'poweron_reset'
-    if sw_status is 3:
+    if sw_status == 3:
         return b'button_rebooted'
-    if sw_status is 2:
+    if sw_status == 2:
         return b'button_pressed'
-    if sw_status is 1:
+    if sw_status == 1:
         return b'timer_rebooted'
     return b''
 
@@ -118,7 +118,7 @@ def piwatcher_watch(minutes):
                   
 def picowatcher_rtc(time=None):
     "Get or set the Pico's RTC"
-    if time is None:
+    if time == None:
         time_list = i2c.read_i2c_block_data(addr, 3, 10)
         time_bytes = bytes(time_list)
         result = struct.unpack("HBBBBBBH", time_bytes)
@@ -201,7 +201,7 @@ def on_message(client, userdata, message):
         print(message.topic, "=", str(message.payload.decode("utf-8")), "(retained)")
     else:
         print(message.topic, "=", str(message.payload.decode("utf-8")), "(live)")
-    if message.topic is "birdboxes/birdbox3/force_up":
+    if message.topic == "birdboxes/birdbox3/force_up":
         if message.payload:
             force_up = bool(int.from_bytes(message.payload, byteorder='little'))
         else:
@@ -250,7 +250,7 @@ try:
     wake_time = noon_tomorrow # default wake-up time
     message = "Default shutdown"
     # Decide how long to stay up, based on time of day and battery level
-    if level is not None: # if there wasn't an I2C error reading the level
+    if level != None: # if there wasn't an I2C error reading the level
         stay_up, wake_time, message = evaluate(now, level)
     print("stay-up duration =", stay_up, "wake-up time =", wake_time)
     client.publish("birdboxes/birdbox3/initial_stay_up", stay_up, retain=True)
