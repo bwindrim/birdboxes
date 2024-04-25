@@ -212,10 +212,10 @@ try:
         client.publish("birdboxes/birdbox1/battery_level", level, retain=True)
         if len(status) >= 2:
             client.publish("birdboxes/birdbox1/status", int(status[1], base=16), retain=True)
-        if b'button_pressed' in status: # shutdown immediately
-#            piwatcher_reset()        # clear the PiWatcher status
-            stay_up = 0
-            message = "Button pressed, immediate shutdown"
+#         if b'button_pressed' in status: # shutdown immediately
+# #            piwatcher_reset()        # clear the PiWatcher status
+#             stay_up = 0
+#             message = "Button pressed, immediate shutdown"
         if exists("/tmp/shutdown"): # if shutdown requested
             stay_up = 0
             message = "/tmp/shutdown detected, immediate shutdown"
