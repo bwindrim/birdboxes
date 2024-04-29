@@ -1,3 +1,4 @@
+# BirdBox 3
 import sys
 import time
 import subprocess
@@ -268,6 +269,9 @@ try:
         client.publish("birdboxes/birdbox3/battery_level", level, retain=True)
         if len(status) >= 2:
             client.publish("birdboxes/birdbox3/status", int(status[1], base=16), retain=True)
+        if level < 43000: # low battery, shutdown immediately
+            stay_up = 0
+            message = "Low battery, immediate shutdown"
         if b'button_pressed' in status: # shutdown immediately
             stay_up = 0
             message = "Button pressed, immediate shutdown"
