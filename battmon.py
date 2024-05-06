@@ -102,13 +102,13 @@ def evaluate(now, level):
         stay_up = 180
         wake_time = now + stay_up + 180
         message = "Scheduled two-hour shutdown"
-    elif level >= 70: # 3-4 battery bars, stay up for 1 hour then power off for 4 hours
+    elif level >= 70: # 3-4 battery bars, stay up for 1 1/2 hours then power off for 4 1/2 hours
         stay_up = 90
-        wake_time = now + stay_up + 240
+        wake_time = now + stay_up + 270
         message = "Scheduled one-hour shutdown"
-    elif level >= 60: # 3 battery bars, stay up for 40 minutes then power off for 5 1/3 hours
+    elif level >= 60: # 3 battery bars, stay up for 45 minutes then power off for 5 1/4 hours
         stay_up = 45
-        wake_time = now + stay_up + 260
+        wake_time = now + stay_up + 315
         message = "Scheduled half-hour shutdown"
     elif level >= 50: # 2-3 battery bars, stay up for 30 minutes then power off until 8:00 tomorrow
         stay_up = 30
