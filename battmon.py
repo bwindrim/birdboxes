@@ -100,19 +100,19 @@ def evaluate(now, level):
         return (stay_up, wake_time, message) # early out
     elif level >= 80: # 4 battery bars, stay up for 3 hours then power off for 3 hours
         stay_up = 180
-        wake_time = now + stay_up + 180
+        wake_time = now + 360
         message = "Scheduled two-hour shutdown"
-    elif level >= 70: # 3-4 battery bars, stay up for 1 1/2 hours then power off for 4 1/2 hours
-        stay_up = 90
-        wake_time = now + stay_up + 270
+    elif level >= 70: # 3-4 battery bars, stay up for 2 hours then power off for 4 hours
+        stay_up = 120
+        wake_time = now + 360
         message = "Scheduled one-hour shutdown"
-    elif level >= 60: # 3 battery bars, stay up for 45 minutes then power off for 5 1/4 hours
-        stay_up = 45
-        wake_time = now + stay_up + 315
+    elif level >= 60: # 3 battery bars, stay up for 1 hour then power off for 5 hours
+        stay_up = 60
+        wake_time = now + 360
         message = "Scheduled half-hour shutdown"
     elif level >= 50: # 2-3 battery bars, stay up for 30 minutes then power off until 8:00 tomorrow
         stay_up = 30
-        wake_time = minutes(1,8,0)
+        wake_time = now + 720
         message = "Scheduled half-hour shutdown"
     elif level >= 40: # 2 battery bars, stay up for 15 minutes then power off until 8:00 tomorrow
         stay_up = 15
@@ -124,7 +124,7 @@ def evaluate(now, level):
         message = "Emergency shutdown"
     wake_time = wake_time // 15 * 15 # Round wake time down to nearest 15 minutes
     if wake_time >= minutes(0,23,0): # wake is 11PM or later
-        wake_time = max(wake_time, minutes(1,8,0)) # Don't bother waking until 8am
+        wake_time = max(wake_time, minutes(1,7,0)) # Don't bother waking until 7am
     return (stay_up, wake_time, message)
 
 def timestr(time):
