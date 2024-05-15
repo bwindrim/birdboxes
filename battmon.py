@@ -110,7 +110,7 @@ def evaluate(now, level):
         stay_up = 60
         wake_time = now + 360
         message = "Scheduled half-hour shutdown"
-    elif level >= 50: # 2-3 battery bars, stay up for 30 minutes then power off until 8:00 tomorrow
+    elif level >= 50: # 2-3 battery bars, stay up for 30 minutes then power off for (at least) 12 hours
         stay_up = 30
         wake_time = now + 720
         message = "Scheduled half-hour shutdown"
@@ -197,6 +197,7 @@ try:
     message = "Default shutdown"
     # Decide how long to stay up, based on time of day and battery level
     stay_up, wake_time, message = evaluate(now, level)
+    piwatcher_wake(wake_time - now - 3) # set the wake-up interval
     print("stay-up duration =", stay_up, "wake-up time =", wake_time)
     client.publish("birdboxes/birdbox1/initial_stay_up", stay_up, retain=True)
     client.publish("birdboxes/birdbox1/wake_time", timestr(wake_time), retain=True)
@@ -220,10 +221,11 @@ try:
         if exists("/tmp/shutdown"): # if shutdown requested
             stay_up = 0
             message = "/tmp/shutdown detected, immediate shutdown"
+        piwatcher_wake(wake_time - now - 3) # update the wake-up interval
     # We've left the loop, initiate shutdown
     piwatcher_watch(3)      # set 3-minute watchdog timeout, again, in case it was cancelled by user
     piwatcher_led(True)     # turn on the PiWatcher's LED
-    piwatcher_wake(wake_time - now - 3) # set the wake-up interval
+#     piwatcher_wake(wake_time - now - 3) # set the wake-up interval
     print("Shutting down, wake time is", timestr(wake_time))
     client.publish("birdboxes/birdbox1/shutdown_time", time.asctime(), retain=True)
     client.publish("birdboxes/birdbox1/wake_time", timestr(wake_time), retain=True)
