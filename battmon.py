@@ -124,7 +124,7 @@ def evaluate(now, level):
         message = "Emergency shutdown"
     wake_time = wake_time // 15 * 15 # Round wake time down to nearest 15 minutes
     if wake_time >= minutes(0,23,0): # wake is 11PM or later
-        wake_time = max(wake_time, minutes(1,7,0)) # Don't bother waking until 7am
+        wake_time = max(wake_time, minutes(1,8,0)) # Don't bother waking until 8am
     return (stay_up, wake_time, message)
 
 def timestr(time):
