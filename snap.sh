@@ -1,6 +1,7 @@
 #!/bin/bash
 if [ ! -d /sys/class/gpio/gpio5 ] ; then
 	echo 5 >/sys/class/gpio/export
+	echo out >/sys/class/gpio/gpio5/direction
 fi
 if [ ! -d /sys/class/gpio/gpio6 ] ; then
 	echo 6 >/sys/class/gpio/export
