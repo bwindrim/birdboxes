@@ -42,11 +42,11 @@ with PiCamera() as camera:
 if os.path.isdir(remote_dir):
     subprocess.run(["/usr/bin/cp", "-p", local_file, remote_file])
 
-metadata = m.media_post(local_file, "image/jpg")
+#metadata = m.media_post(local_file, "image/jpg")
 # Response format: https://mastodonpy.readthedocs.io/en/stable/#media-dicts
 if len(sys.argv) <= 2:
     message = "Another post from " + platform + ": " + filename
 else:
     message = sys.argv[2]
 
-m.status_post(message, media_ids=metadata["id"])
+#m.status_post(message, media_ids=metadata["id"])
