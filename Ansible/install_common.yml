@@ -1,0 +1,90 @@
+---
+- name: install necessary packages for birdboxes
+  hosts: all
+  become: yes
+
+  tasks:
+
+  - name: Ensure that WireGuard is installed
+    apt:
+      name: wireguard
+      state: present
+
+  - name: Ensure that net-tools is installed
+    apt:
+      name: net-tools
+      state: present
+
+  - name: Ensure that build-essential is installed
+    apt:
+      name: build-essential
+      state: present
+
+  - name: Ensure that iperf3 is installed
+    apt:
+      name: iperf3
+      state: present
+
+  - name: Ensure that Paho MQTT is installed
+    apt:
+      name: python3-paho-mqtt
+      state: present
+
+  - name: Ensure that UFW is installed
+    apt:
+      name: ufw
+      state: present
+
+  - name: Allow SSH through UFW
+    ufw:
+        rule: limit
+        port: 22
+
+  - name: Allow PiGPIO through UFW
+    ufw:
+        rule: allow
+        port: 8888
+
+  - name: Allow raspistill through UFW
+    ufw:
+        rule: allow
+        port: 9999
+
+  - name: Allow raspivid through UFW
+    ufw:
+        rule: allow
+        port: 3333
+
+  - name: Allow ??? through UFW
+    ufw:
+        rule: allow
+        port: 873
+
+  - name: Allow WireGuard through UFW
+    ufw:
+        rule: allow
+        port: 51820
+        proto: udp
+
+  - name: Enable UFW
+    ufw:
+      state: enabled
+      policy: deny
+
+
+- name: Install mpremote on BirdBox3 (only)
+  hosts: birdbox3
+  become: yes
+
+  tasks:
+
+  - name: Ensure that pip3 is installed
+    apt:
+      name: python3-pip
+      state: present
+
+  - name: Ensure that mpremote is installed
+    pip:
+      name: mpremote
+      state: present
+

@@ -1,0 +1,21 @@
+---
+- hosts: all
+  become: yes
+
+  tasks:
+  - name: Update and upgrade apt packages
+    apt:
+      upgrade: yes
+      update_cache: yes
+      cache_valid_time: 86400 #One day
+
+  - name: Ensure that WireGuard is installed
+    apt:
+      name: wireguard
+      state: present
+
+  - name: Ensure that net-tools is installed
+    apt:
+      name: net-tools
+      state: present
+
