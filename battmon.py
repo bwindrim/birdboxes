@@ -11,7 +11,7 @@ from os.path import exists
 
 broker_name = "192.168.58.23" # WG address of Pi2B
 
-# These are constants from MicroPython's machine module, which we don't havedirect access to here
+# These are constants from MicroPython's machine module, which we don't have direct access to here
 PWRON_RESET = 1
 WDT_RESET = 3
 
