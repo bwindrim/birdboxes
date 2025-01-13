@@ -1,0 +1,16 @@
+---
+wireguard_packages:
+  - wireguard-tools
+  - linux-headers-$(uname -r)  # Adjust for your distribution
+wireguard_address: "10.0.0.1/24"
+wireguard_port: 51820
+wireguard_dns: "8.8.8.8"
+wireguard_peers:
+  - public_key: "peer1-public-key"
+    allowed_ips: "10.0.0.2/32"
+    endpoint: "peer1.example.com:51820"
+    persistent_keepalive: 25
+  - public_key: "peer2-public-key"
+    allowed_ips: "10.0.0.3/32"
+    endpoint: "peer2.example.com:51820"
+    persistent_keepalive: 25
