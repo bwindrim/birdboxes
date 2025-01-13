@@ -12,7 +12,7 @@
     mode: '0700'
 
 - name: Generate private key if not present
-  ansible.builtin.command: wg genkey | tee /etc/wireguard/private.key
+  ansible.builtin.shell: wg genkey | tee /etc/wireguard/private.key
   args:
     creates: /etc/wireguard/private.key
   register: private_key_generation
@@ -23,7 +23,7 @@
   register: private_key
 
 - name: Generate public key from private key
-  ansible.builtin.command: echo "{{ private_key['content'] | b64decode }}" | wg pubkey
+  ansible.builtin.shell: echo "{{ private_key['content'] | b64decode }}" | wg pubkey
   register: public_key
 
 - name: Configure WireGuard interface
