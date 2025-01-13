@@ -31,9 +31,4 @@
     src: wg0.conf.j2
     dest: /etc/wireguard/wg0.conf
     mode: '0600'
-
-- name: Enable and start WireGuard
-  ansible.builtin.systemd:
-    name: wg-quick@wg0
-    enabled: yes
-    state: started
+  notify: Restart WireGuard
