@@ -1,12 +1,6 @@
 ---
 wireguard_packages:
   - wireguard
-#  - linux-headers-$(uname -r)  # Adjust for your distribution
 wireguard_address: "192.168.3.1/24"
 wireguard_port: 53798
 wireguard_dns: "8.8.8.8"
-wireguard_peers:
-  - public_key: "GX9Oa8Q0zJNRzXRtC+e6wLu6ynnDrhOqNzQbRge82GI="
-    allowed_ips: "192.168.3.1/32"
-    endpoint: "192.168.58.23:53798"
-    persistent_keepalive: 25
