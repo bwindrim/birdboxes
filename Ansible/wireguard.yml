@@ -1,6 +1,6 @@
 ---
 - name: Install and configure WireGuard
-  hosts: birdboxes
+  hosts: wireguard_clients
   become: yes
   roles:
     - wireguard

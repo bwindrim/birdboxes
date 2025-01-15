@@ -1,6 +1,6 @@
 ---
 - name: install necessary packages for birdboxes
-  hosts: all
+  hosts: birdboxes
   become: yes
 
   tasks:

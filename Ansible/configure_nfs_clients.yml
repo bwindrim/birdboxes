@@ -1,0 +1,38 @@
+---
+- name: Configure Debian hosts as NFS clients
+  hosts: nfs_clients
+  become: true
+  vars:
+    nfs_server: "192.168.3.1"      # WireGuard IP address of Pi2B
+    nfs_share: "/mnt/SanDisk128GB" # NFS share on Pi2B
+    mount_point: "/mnt/remote"     # mount pint on birdbox(es)
+  tasks:
+    - name: Ensure NFS client packages are installed
+      apt:
+        name: nfs-common
+        state: present
+        update_cache: yes
+
+    - name: Create mount point directory
+      file:
+        path: "{{ mount_point }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Mount the NFS share
+      mount:
+        path: "{{ mount_point }}"
+        src: "{{ nfs_server }}:{{ nfs_share }}"
+        fstype: nfs
+        state: mounted
+
+    - name: Ensure NFS share is mounted at boot
+      mount:
+        path: "{{ mount_point }}"
+        src: "{{ nfs_server }}:{{ nfs_share }}"
+        fstype: nfs
+        opts: defaults
+        state: present
+
