@@ -7,6 +7,8 @@ from machine import Pin, RTC, ADC, WDT, lightsleep
 from i2c_responder import I2CResponder
 from struct import pack, unpack
 
+powerconserve = False
+
 # I2C register numbers:
 # 1 - status register (read to reset watch countdown)
 # 2 - ADC value (2 bytes, read-only)
@@ -38,10 +40,11 @@ def pi_power_off():
     "Disable +5V power to the Pi by turning off the wide-input shim"
     pwr.off()
     led.off()
-    # turn the pull-ups off to conserve power
-    sda.init(Pin.IN, None)
-    scl.init(Pin.IN, None)
-    txd.init(Pin.IN, None)
+    if powerconserve:
+        # turn the pull-ups off to conserve power
+        sda.init(Pin.IN, None)
+        scl.init(Pin.IN, None)
+        txd.init(Pin.IN, None)
     return
 
 def pi_power_on():
@@ -52,10 +55,11 @@ def pi_power_on():
     adc2_value = adc2.read_u16()
     pwr.on()
     led.on()
-    # turn the pull-ups back on
-    sda.init(Pin.IN, Pin.PULL_UP)
-    scl.init(Pin.IN, Pin.PULL_UP)
-    txd.init(Pin.OUT)
+    if powerconserve:
+        # turn the pull-ups back on
+        sda.init(Pin.IN, Pin.PULL_UP)
+        scl.init(Pin.IN, Pin.PULL_UP)
+        txd.init(Pin.OUT)
     return
 
 def suspend(interval_s):
