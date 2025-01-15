@@ -20,6 +20,7 @@ from struct import pack, unpack
 micropython.opt_level(1) # zero is default, i.e. assertions are enabled
 
 btn = Pin(12, Pin.IN, Pin.PULL_UP) # push-button input
+txd = Pin(16, Pin.OUT)
 pwr = Pin(22, Pin.OPEN_DRAIN, value=1)    # wide-input shim enable, pull low for power off
 led = Pin(25, Pin.OUT, value=1)    # Pico LED control
 sda = Pin(26, Pin.IN, Pin.PULL_UP) # when using ADC pins for I2C...
@@ -38,8 +39,9 @@ def pi_power_off():
     pwr.off()
     led.off()
     # turn the pull-ups off to conserve power
-#     sda.init(Pin.IN, None)
-#     scl.init(Pin.IN, None)
+    sda.init(Pin.IN, None)
+    scl.init(Pin.IN, None)
+    txd.init(Pin.IN, None)
     return
 
 def pi_power_on():
@@ -51,8 +53,9 @@ def pi_power_on():
     pwr.on()
     led.on()
     # turn the pull-ups back on
-#     sda.init(Pin.IN, Pin.PULL_UP)
-#     scl.init(Pin.IN, Pin.PULL_UP)
+    sda.init(Pin.IN, Pin.PULL_UP)
+    scl.init(Pin.IN, Pin.PULL_UP)
+    txd.init(Pin.OUT)
     return
 
 def suspend(interval_s):
