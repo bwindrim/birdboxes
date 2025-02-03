@@ -66,6 +66,11 @@
         port: 51820
         proto: udp
 
+  - name: Allow iperf3 through UFW
+    ufw:
+        rule: allow
+        port: 5201
+
   - name: Enable UFW
     ufw:
       state: enabled

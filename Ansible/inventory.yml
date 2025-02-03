@@ -46,3 +46,9 @@ all:
         birdbox1: {}
         birdbox2: {}
         birdbox3: {}
+    iperf3_servers:
+      hosts:
+        birdbox0: {}
+        birdbox1: {}
+        birdbox2: {}
+        birdbox3: {}
