@@ -8,6 +8,6 @@ DNS = {{ wireguard_dns }}
 [Peer]
 PublicKey = {{ peer.public_key }}
 AllowedIPs = {{ peer.allowed_ips }}
-Endpoint = {{ peer.endpoint }}
+Endpoint = {{ wireguard_endpoint }}
 PersistentKeepalive = {{ peer.persistent_keepalive }}
 {% endfor %}

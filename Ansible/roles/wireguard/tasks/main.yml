@@ -32,3 +32,26 @@
     dest: /etc/wireguard/wg0.conf
     mode: '0600'
   notify: Restart WireGuard
+
+- name: Deploy systemd service for DNS re-resolve
+  ansible.builtin.template:
+    src: wireguard-reresolve-dns.service.j2
+    dest: "/etc/systemd/system/wireguard-reresolve-dns.service"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Deploy systemd timer for periodic DNS re-resolve
+  ansible.builtin.template:
+    src: wireguard-reresolve-dns.timer.j2
+    dest: "/etc/systemd/system/wireguard-reresolve-dns.timer"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Reload systemd and start WireGuard DNS re-resolve
+  ansible.builtin.systemd:
+    name: wireguard-reresolve-dns.timer
+    state: started
+    enabled: yes
+    daemon_reload: yes
