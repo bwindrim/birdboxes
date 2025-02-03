@@ -16,33 +16,33 @@ all:
       ansible_user: brian
       wireguard_address: 192.168.3.12/24
       wireguard_endpoint: "bwbirdboxes.duckdns.org:53798"
-#    birdbox3:
-#      ansible_host: birdbox3
-#      ansible_user: brian
-#      wireguard_address: 192.168.3.13/24
-#      wireguard_endpoint: "192.168.58.23:53798"
+    birdbox3:
+      ansible_host: birdbox3
+      ansible_user: brian
+      wireguard_address: 192.168.3.13/24
+      wireguard_endpoint: "192.168.58.23:53798"
   children:
     birdboxes:
       hosts:
         birdbox0: {}
-#        birdbox1: {}
-#        birdbox2: {}
-#        birdbox3: {}
+        birdbox1: {}
+        birdbox2: {}
+        birdbox3: {}
     wireguard_clients:
       hosts:
         birdbox0:
         birdbox1: {}
         birdbox2: {}
-#        birdbox3: {}
+        birdbox3: {}
     nfs_clients:
       hosts:
         birdbox0: {}
-#        birdbox1: {}
-#        birdbox2: {}
+        birdbox1: {}
+        birdbox2: {}
         birdbox3: {}
     rsync_servers:
       hosts:
         birdbox0: {}
-#        birdbox1: {}
-#        birdbox2: {}
-#        birdbox3: {}
+        birdbox1: {}
+        birdbox2: {}
+        birdbox3: {}
