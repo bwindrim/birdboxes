@@ -68,7 +68,7 @@ def suspend(interval_s):
     blink_ms = 10
     if do_prt >= 2:
         print("Sleeping for", interval_s, "s...")
-    while interval_s > 0 and btn.value() is 1: # TBD: fix for interval_s % 5 != 0
+    while interval_s > 0 and btn.value() == 1: # TBD: fix for interval_s % 5 != 0
         wdt.feed() # the watchdog timer appears to keep running during lightsleep()
         delay = min(interval_s*1000, 5000) # sleep for <= 5 seconds at a time
         if do_prt >= 2:
@@ -81,6 +81,7 @@ def suspend(interval_s):
         led.off()
         interval_s -= 5
     if interval_s > 0: # it was the button press that exited the loop
+        global btn_down
         btn_down = True
         reason = 0x30 # button-press wakeup
     if do_prt >= 2:
@@ -89,11 +90,11 @@ def suspend(interval_s):
 
 # Check whether we were rebooted by the watchdog (WDT)
 status = machine.reset_cause() # initialise status
-if status is machine.WDT_RESET:
+if status == machine.WDT_RESET:
     print("Watchdog reset - sleeping for 10 seconds")
     time.sleep(10) # give time for REPL to break in before watchdog restarts
 else:
-    assert(status is machine.PWRON_RESET)
+    assert(status == machine.PWRON_RESET)
     print("Power-on reset")
 watch_seconds = 240 # should be 4 minutes, in case Pi is hung when Pico restarts
 wake_seconds  = 900 # should be 15 minutes, so Pi doesn't stay off
@@ -113,31 +114,31 @@ try:
         if i2c.write_data_is_available(): # process register write
             buffer_in = i2c.get_write_bytes(max_size=16) # ToDo: what if we're faster than the bus?
             assert(len(buffer_in) > 0)
-            if len(buffer_in) is 1: # just a register selection, a read should follow
+            if len(buffer_in) == 1: # just a register selection, a read should follow
                 prefix_reg = buffer_in[0]   # buffer only contains a register number
             else:  # there is data after the reg number
                 prefix_reg = buffer_in[0]   # first byte must be a register number
                 data = buffer_in[1:]        # copy the tail of the buffer
                 if data and do_prt >= 2:
                     print("Received I2C WRITE: reg =", prefix_reg, "data =", data, "len =", len(data))
-                if prefix_reg is 5 and len(data) is 1: # watch time register (1 byte)
+                if prefix_reg == 5 and len(data) == 1: # watch time register (1 byte)
                     watch_seconds = int.from_bytes(data, 'little', False)
                     ticks_base = time.ticks_ms() # reset watch time base
                     prefix_reg = 0
                     if do_prt >= 1:
                         print("WATCH set to", watch_seconds)
-                elif prefix_reg is 6 and len(data) is 2: # wake time register (2 bytes)
+                elif prefix_reg == 6 and len(data) == 2: # wake time register (2 bytes)
                     wake_seconds = int.from_bytes(data, 'little', False) << 2 # value is in 2-sec units
                     prefix_reg = 0
                     if do_prt >= 1:
                         print("WAKE set to", wake_seconds)
-                elif prefix_reg is 8 and len(data) is 1: # LED value (1 byte)
+                elif prefix_reg == 8 and len(data) == 1: # LED value (1 byte)
                     led_value = int.from_bytes(data, 'little', False)
                     led.value(led_value) # Pin.value() accepts any non-zero value as 'on'
                     prefix_reg = 0
                     if do_prt >= 1:
                         print("LED set to", led_value)
-                elif prefix_reg is 3 and len(data) is 10: # RTC date/time
+                elif prefix_reg == 3 and len(data) == 10: # RTC date/time
                     rtc.datetime(unpack("HBBBBBBH", data))
                     prefix_reg = 0
                 elif do_prt >= 1 and len(data) > 0:
@@ -202,7 +203,7 @@ try:
             prefix_reg = 0 # don't retain prefix
 
         # Poll the pushbutton
-        if btn.value() is 0: # button is down
+        if btn.value() == 0: # button is down
             status |= 0x20 # set the button flag in the status
 
         # Check for watch expiry (NOT the hardware watchdog)
