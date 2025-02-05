@@ -1,0 +1,6 @@
+---
+- name: Install piwatcher command binary
+  hosts: piwatchers
+  become: yes
+  roles:
+    - piwatcher

@@ -1,2 +1,10 @@
 ---
 # tasks file for piwatcher
+- name: Install piwatcher
+  copy:
+    dest: /usr/local/bin/piwatcher
+    src: piwatcher
+    owner: root
+    group: root
+    mode: '0755'
+

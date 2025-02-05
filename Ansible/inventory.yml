@@ -52,3 +52,10 @@ all:
         birdbox1: {}
         birdbox2: {}
         birdbox3: {}
+    piwatchers:
+      hosts:
+        birdbox0: {}
+        birdbox1: {}
+    lte_ppp_nodes:
+      hosts:
+        birdbox1: {}
