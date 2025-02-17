@@ -33,6 +33,6 @@
         path: "{{ mount_point }}"
         src: "{{ nfs_server }}:{{ nfs_share }}"
         fstype: nfs
-        opts: defaults
+        opts: defaults,bg
         state: present
 
