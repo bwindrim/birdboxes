@@ -1,0 +1,7 @@
+---
+- name: Install and configure Clipper PPP peer and service
+  hosts: lte_ppp_nodes
+  become: yes
+  roles:
+    - lte-ppp-node
+
