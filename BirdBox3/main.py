@@ -7,7 +7,7 @@ from machine import Pin, RTC, ADC, WDT, lightsleep
 from i2c_responder import I2CResponder
 from struct import pack, unpack
 
-powerconserve = False
+powerconserve = True
 
 # I2C register numbers:
 # 1 - status register (read to reset watch countdown)
@@ -21,8 +21,7 @@ powerconserve = False
 
 micropython.opt_level(1) # zero is default, i.e. assertions are enabled
 
-btn = Pin(12, Pin.IN, Pin.PULL_UP) # push-button input
-txd = Pin(16, Pin.OUT)
+btn = Pin(23, Pin.IN, Pin.PULL_DOWN) # push-button input for Pico Lipo
 pwr = Pin(22, Pin.OPEN_DRAIN, value=1)    # wide-input shim enable, pull low for power off
 led = Pin(25, Pin.OUT, value=1)    # Pico LED control
 sda = Pin(26, Pin.IN, Pin.PULL_UP) # when using ADC pins for I2C...
@@ -32,7 +31,14 @@ adc2 = ADC(Pin(29)) # secondary battery voltage measurement
 rtc = RTC()
 i2c = I2CResponder(1, sda_gpio=26, scl_gpio=27, responder_address=0x41)
 
-do_prt = 0
+vsys = adc2	                 # reads the system input voltage
+charging = Pin(24, Pin.IN)          # reading GP24 tells us whether or not USB power is connected
+conversion_factor = 3 * 3.3 / 65535
+
+full_battery = 4.2                  # reference voltages for a full/empty battery, in volts
+empty_battery = 2.8                 # the values could vary by battery size/manufacturer so you might need to adjust them
+
+do_prt = 2 # must be 0 or 1 for lightsleep 
 btn_down = False
 adc2_value = 0
 
@@ -44,7 +50,6 @@ def pi_power_off():
         # turn the pull-ups off to conserve power
         sda.init(Pin.IN, None)
         scl.init(Pin.IN, None)
-        txd.init(Pin.IN, None)
     return
 
 def pi_power_on():
@@ -59,7 +64,6 @@ def pi_power_on():
         # turn the pull-ups back on
         sda.init(Pin.IN, Pin.PULL_UP)
         scl.init(Pin.IN, Pin.PULL_UP)
-        txd.init(Pin.OUT)
     return
 
 def suspend(interval_s):
@@ -77,7 +81,16 @@ def suspend(interval_s):
             lightsleep(delay - blink_ms)
         # blink the LED
         led.on()
-        time.sleep_ms(blink_ms) # ToDo: make this lightsleep() ?
+        if do_prt >= 1:
+            # convert the raw ADC read into a voltage, and then a percentage
+            voltage = vsys.read_u16() * conversion_factor
+            percentage = 100 * ((voltage - empty_battery) / (full_battery - empty_battery))
+            if percentage > 100:
+                percentage = 100
+            print('{:.2f}'.format(voltage) + "v", '{:.0f}%'.format(percentage))
+            if charging.value() == 1:         # if it's plugged into USB power...
+                print("Charging!")
+        time.sleep_ms(blink_ms)
         led.off()
         interval_s -= 5
     if interval_s > 0: # it was the button press that exited the loop
