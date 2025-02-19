@@ -1,2 +1,4 @@
 ---
-# handlers file for piwatcher
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: yes

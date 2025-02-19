@@ -8,6 +8,14 @@
     group: root
     mode: '0755'
 
+- name: Install piwatcher.sh
+  copy:
+    dest: /usr/local/bin/piwatcher.sh
+    src: "{{ inventory_hostname }}.sh"
+    owner: root
+    group: root
+    mode: '0755'
+
 - name: Get I2C status
   shell: "raspi-config nonint get_i2c"
   register: i2c_status
@@ -18,4 +26,28 @@
   shell: "raspi-config nonint do_i2c 0"
   when: (i2c_status.stdout != '0')
 
+- name: Create piwatcher systemd service
+  copy:
+    dest: /etc/systemd/system/piwatcher.service
+    content: |
+      [Unit]
+      Description=PiWatcher Service
+      StartLimitIntervalSec=0
 
+      [Service]
+      Type=simple
+      Restart=always
+      RestartSec=1
+      ExecStart=/usr/local/bin/piwatcher.sh
+
+      [Install]
+      WantedBy=multi-user.target
+  notify: Reload systemd
+
+
+- name: Enable PiWatcher service, but don't start it now
+  systemd:
+    name: piwatcher
+    enabled: yes
+    state: stopped
+    daemon_reload: no
