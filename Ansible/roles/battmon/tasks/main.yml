@@ -1,0 +1,49 @@
+---
+- name: Install Python3 SMBUS (I2C) package
+  ansible.builtin.package:
+    name: python3-smbus
+    state: present
+
+- name: Get I2C status
+  shell: "raspi-config nonint get_i2c"
+  register: i2c_status
+  changed_when: False
+
+- name: Enable I2C
+  # Note that 0 == enable I2C
+  shell: "raspi-config nonint do_i2c 0"
+  when: (i2c_status.stdout != '0')
+
+- name: Install battery monitor
+  copy:
+    dest: /usr/local/bin/battmon.py
+    src: "{{ inventory_hostname }}.py"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create battmon systemd service
+  copy:
+    dest: /etc/systemd/system/battmon.service
+    content: |
+      [Unit]
+      Description=Battery monitoring, watchdog, and auto-shutdown daemon
+      After=time-sync.target
+      Wants=time-sync.target
+
+      [Service]
+      ExecStart=/usr/bin/python3 -O /usr/local/bin/battmon.py
+      Environment=PYTHONUNBUFFERED=1
+      Restart=on-failure
+
+      [Install]
+      WantedBy=multi-user.target
+  notify: Reload systemd
+
+- name: Enable and start battmon service
+  systemd:
+    name: battmon
+    enabled: yes
+    state: started
+    daemon_reload: yes
+

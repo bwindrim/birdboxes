@@ -1,0 +1,6 @@
+---
+- name: Install and configure the battery monitor service
+  hosts: battmon_hosts
+  become: yes
+  roles:
+    - battmon
