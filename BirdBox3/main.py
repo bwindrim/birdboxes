@@ -38,7 +38,7 @@ conversion_factor = 3 * 3.3 / 65535
 full_battery = 4.2                  # reference voltages for a full/empty battery, in volts
 empty_battery = 2.8                 # the values could vary by battery size/manufacturer so you might need to adjust them
 
-do_prt = 2 # must be 0 or 1 for lightsleep 
+do_prt = 0 # must be 0 or 1 for lightsleep 
 btn_down = False
 adc2_value = 0
 
@@ -47,7 +47,7 @@ def pi_power_off():
     pwr.off()
     led.off()
     if powerconserve:
-        # turn the pull-ups off to conserve power
+        # turn the I2C pull-ups off to conserve power
         sda.init(Pin.IN, None)
         scl.init(Pin.IN, None)
     return
@@ -61,7 +61,7 @@ def pi_power_on():
     pwr.on()
     led.on()
     if powerconserve:
-        # turn the pull-ups back on
+        # turn the I2C pull-ups back on
         sda.init(Pin.IN, Pin.PULL_UP)
         scl.init(Pin.IN, Pin.PULL_UP)
     return
