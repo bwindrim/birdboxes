@@ -12,8 +12,8 @@ broker_name = "192.168.3.1" # WG address of Pi2B
 # Use BCM GPIO references instead of physical pin numbers
 GPIO.setmode(GPIO.BCM)
 
-# Define GPIO signals to use
-battery = [6,12,13,26]
+# Define GPIO signals to use for the battery level
+battery = [13, 12, 7, 22]
 
 force_up = None
 
@@ -214,10 +214,10 @@ try:
         client.publish("birdboxes/birdbox1/battery_level", level, retain=True)
         if len(status) >= 2:
             client.publish("birdboxes/birdbox1/status", int(status[1], base=16), retain=True)
-#         if b'button_pressed' in status: # shutdown immediately
-# #            piwatcher_reset()        # clear the PiWatcher status
-#             stay_up = 0
-#             message = "Button pressed, immediate shutdown"
+        if b'button_pressed' in status: # shutdown immediately
+#            piwatcher_reset()        # clear the PiWatcher status
+            stay_up = 0
+            message = "Button pressed, immediate shutdown"
         if exists("/tmp/shutdown"): # if shutdown requested
             stay_up = 0
             message = "/tmp/shutdown detected, immediate shutdown"
