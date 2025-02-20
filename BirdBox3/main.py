@@ -7,7 +7,7 @@ from machine import Pin, RTC, ADC, WDT, lightsleep
 from i2c_responder import I2CResponder
 from struct import pack, unpack
 
-powerconserve = True
+powerconserve = False
 
 # I2C register numbers:
 # 1 - status register (read to reset watch countdown)

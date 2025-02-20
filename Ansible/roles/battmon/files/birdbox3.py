@@ -64,6 +64,17 @@ def status_to_bytestr(status):
         return b'timer_rebooted'
     return b''
 
+def secondary_voltage(val):
+    conversion_factor = 3 * 3.3 / 65535
+    full_battery = 4.2    # reference voltages for a full/empty battery, in volts
+    empty_battery = 2.8   # the values could vary by battery size/manufacturer so you might need to adjust them
+    voltage = val * conversion_factor
+    percentage = 100 * ((voltage - empty_battery) / (full_battery - empty_battery))
+    if percentage > 100:
+        percentage = 100
+
+    return '{:.2f}'.format(voltage) + "v " + '{:.0f}%'.format(percentage)
+
 # ToDo: fold these two functions together
 def piwatcher_status():
     "Query PicoWatcher to reset watch timer"
@@ -223,7 +234,7 @@ try:
     initial_status = piwatcher_status() # store the piwatcher status
     print("PiWatcher initial status =", initial_status)    # log the status
     if len(initial_status) >= 2:
-        client.publish("birdboxes/birdbox3/initial_status", int(initial_status[1], base=16), retain=True)
+        client.publish("birdboxes/birdbox3/initial_status", int(initial_status[1], base=16), qos=1, retain=True)
     piwatcher_reset()        # clear the PiWatcher status
     piwatcher_led(False)     # turn off the PiWatcher's LED
     piwatcher_watch(3)       # set 3-minute watchdog timeout
@@ -234,7 +245,7 @@ try:
     noon_today = minutes(0,12,0)
     noon_tomorrow = minutes(1,12,0)
     print ("now =", now, "noon today =", noon_today, "noon tomorrow =", noon_tomorrow)
-    client.publish("birdboxes/birdbox3/startup_time", time.asctime(), retain=True)
+    client.publish("birdboxes/birdbox3/startup_time", time.asctime(), qos=1, retain=True)
     # Set a default wake interval, as a backstop
     if (now > (noon_today - 60)): # it's after 11am already
         piwatcher_wake(noon_tomorrow - now) # wake tomorrow
@@ -244,8 +255,8 @@ try:
     level = getBatteryLevel()
     level2 = getBatteryLevel(7)
     print ("Battery levels: primary =", level, "secondary =", level2)
-    client.publish("birdboxes/birdbox3/initial_battery_level", level, retain=True)
-    client.publish("birdboxes/birdbox3/initial_battery2_level", level2, retain=True)
+    client.publish("birdboxes/birdbox3/initial_battery_level", level, qos=1, retain=True)
+    client.publish("birdboxes/birdbox3/initial_battery2_level", secondary_voltage(level2), qos=1, retain=True)
 
     stay_up = 15 # default 15-minute time before shutting down, overridden below
     wake_time = noon_tomorrow # default wake-up time
@@ -254,8 +265,8 @@ try:
     if level != None: # if there wasn't an I2C error reading the level
         stay_up, wake_time, message = evaluate(now, level)
     print("stay-up duration =", stay_up, "wake-up time =", wake_time)
-    client.publish("birdboxes/birdbox3/initial_stay_up", stay_up, retain=True)
-    client.publish("birdboxes/birdbox3/wake_time", timestr(wake_time), retain=True)
+    client.publish("birdboxes/birdbox3/initial_stay_up", stay_up, qos=1, retain=True)
+    client.publish("birdboxes/birdbox3/wake_time", timestr(wake_time), qos=1, retain=True)
     # Main watcher loop
     while stay_up > 0:
         # Sleep for one minute
@@ -265,10 +276,10 @@ try:
         status = piwatcher_status()  # reset the watchdog
         level = getBatteryLevel()
         print("now = ", timestr(now), "stay up = ", stay_up, "battery level =", level, "status =", status)
-        client.publish("birdboxes/birdbox3/stay_up", stay_up, retain=True)
-        client.publish("birdboxes/birdbox3/battery_level", level, retain=True)
+        client.publish("birdboxes/birdbox3/stay_up", stay_up, qos=1, retain=True)
+        client.publish("birdboxes/birdbox3/battery_level", level, qos=1, retain=True)
         if len(status) >= 2:
-            client.publish("birdboxes/birdbox3/status", int(status[1], base=16), retain=True)
+            client.publish("birdboxes/birdbox3/status", int(status[1], base=16), qos=1, retain=True)
         if level < 43000: # low battery, shutdown immediately
             stay_up = 0
             message = "Low battery, immediate shutdown"
@@ -291,9 +302,9 @@ try:
     piwatcher_led(True)     # turn on the PiWatcher's LED
     piwatcher_wake(wake_time - now - 3) # set the wake-up interval
     print("Shutting down, wake time is", timestr(wake_time))
-    client.publish("birdboxes/birdbox3/shutdown_time", time.asctime(), retain=True)
-    client.publish("birdboxes/birdbox3/wake_time", timestr(wake_time), retain=True)
-    client.publish("birdboxes/birdbox3/message", message, retain=True)
+    client.publish("birdboxes/birdbox3/shutdown_time", time.asctime(), qos=1, retain=True)
+    client.publish("birdboxes/birdbox3/wake_time", timestr(wake_time), qos=1, retain=True)
+    client.publish("birdboxes/birdbox3/message", message, qos=1, retain=True)
     if exists("/tmp/noshutdown"): # if shutdown is to be blocked
         print("Shutdown blocked by /tmp/noshutdown, deferring by one hour")
         system_shutdown(message, when="+60") # ToDo: fix shutdown deferral (for fledging!)
