@@ -1,4 +1,9 @@
 ---
+- name: Install Python3 requests module
+  ansible.builtin.package:
+    name: python3-requests
+    state: present
+
 - name: Install Python3 SMBUS (I2C) package
   ansible.builtin.package:
     name: python3-smbus

@@ -4,6 +4,7 @@ import time
 import subprocess
 import RPi.GPIO as GPIO
 import paho.mqtt.client as mqtt
+import requests
 from datetime import datetime
 from os.path import exists
 
@@ -98,23 +99,23 @@ def evaluate(now, level):
         wake_time = minutes(0,8,0)
         message = "Early morning 1-hour shutdown"
         return (stay_up, wake_time, message) # early out
-    elif level >= 80: # 4 battery bars, stay up for 3 hours then power off for 3 hours
+    elif level >= 100: # 4 battery bars, stay up for 3 hours then power off for 3 hours
         stay_up = 180
         wake_time = now + 360
         message = "Scheduled two-hour shutdown"
-    elif level >= 70: # 3-4 battery bars, stay up for 2 hours then power off for 4 hours
+    elif level >= 85: # 3-4 battery bars, stay up for 2 hours then power off for 4 hours
         stay_up = 120
         wake_time = now + 360
         message = "Scheduled one-hour shutdown"
-    elif level >= 60: # 3 battery bars, stay up for 1 hour then power off for 5 hours
+    elif level >= 75: # 3 battery bars, stay up for 1 hour then power off for 5 hours
         stay_up = 60
         wake_time = now + 360
         message = "Scheduled half-hour shutdown"
-    elif level >= 50: # 2-3 battery bars, stay up for 30 minutes then power off for (at least) 12 hours
+    elif level >= 60: # 2-3 battery bars, stay up for 30 minutes then power off for (at least) 12 hours
         stay_up = 30
         wake_time = now + 720
         message = "Scheduled half-hour shutdown"
-    elif level >= 40: # 2 battery bars, stay up for 15 minutes then power off until 8:00 tomorrow
+    elif level >= 50: # 2 battery bars, stay up for 15 minutes then power off until 8:00 tomorrow
         stay_up = 15
         wake_time = minutes(1,8,0)
         message = "Scheduled 15-minute shutdown"
@@ -143,6 +144,10 @@ def test_all():
     "Test function for evaluate"
     for level in range(80,0,-10):
         test(level)
+
+def ntfy(msg):
+    requests.post("https://ntfy.sh/BWBirdBoxes",
+                  data=msg.encode(encoding='utf-8'))
 
 # MQTT setup
 def on_message(client, userdata, message):
@@ -188,7 +193,7 @@ try:
     else:
         piwatcher_wake(noon_today - now) # wake today
     # Read the battery level from the solar controller
-    level = getBatteryLevel()
+    level = getBatteryLevel(numReads=25)
     print ("Battery level = ", level)
     client.publish("birdboxes/birdbox1/initial_battery_level", level, qos=1, retain=True)
 
@@ -201,6 +206,7 @@ try:
     print("stay-up duration =", stay_up, "wake-up time =", wake_time)
     client.publish("birdboxes/birdbox1/initial_stay_up", stay_up, qos=1, retain=True)
     client.publish("birdboxes/birdbox1/wake_time", timestr(wake_time), qos=1, retain=True)
+    ntfy(f'BirdBox1 up: batt {level}%, stay up {stay_up} mins')
     # Main watchdog wakeup loop
     while stay_up > 0:
         # Sleep for one minute
@@ -209,7 +215,7 @@ try:
         stay_up = stay_up - 1 # decrement the remaining stay-up duration by one minute
         client.publish("birdboxes/birdbox1/stay_up", stay_up, qos=1, retain=False)
         status = piwatcher_status()  # reset the watchdog
-        level = getBatteryLevel()
+        level = getBatteryLevel(numReads=25)
         print("now = ", timestr(now), "stay up = ", stay_up, "battery level =", level, "status =", status)
         client.publish("birdboxes/birdbox1/battery_level", level, qos=1, retain=True)
         if len(status) >= 2:
@@ -229,6 +235,7 @@ try:
     print("Shutting down, wake time is", timestr(wake_time))
     client.publish("birdboxes/birdbox1/shutdown_time", time.asctime(), qos=1, retain=True)
     client.publish("birdboxes/birdbox1/wake_time", timestr(wake_time), qos=1, retain=True)
+    ntfy(f'BirdBox1 going down until {timestr(wake_time)}')
     if exists("/tmp/noshutdown"): # if shutdown is to be blocked
         print("Shutdown blocked by /tmp/noshutdown, deferring by one hour")
         system_shutdown(message, when="+60")

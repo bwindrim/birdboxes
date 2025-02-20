@@ -3,6 +3,7 @@ import sys
 import time
 import subprocess
 import smbus # for I2C
+import requests
 from struct import pack, unpack
 import RPi.GPIO as GPIO
 import paho.mqtt.client as mqtt
@@ -63,6 +64,17 @@ def status_to_bytestr(status):
     if sw_status == 1:
         return b'timer_rebooted'
     return b''
+
+def primary_voltage(val):
+    conversion_factor = 13.16 / 46731 # recorded values
+    full_battery = 13.24    # reference voltages for a full/empty battery, in volts
+    empty_battery = 11.0   # the values could vary by battery size/manufacturer so you might need to adjust them
+    voltage = val * conversion_factor
+    percentage = 100 * ((voltage - empty_battery) / (full_battery - empty_battery))
+    if percentage > 100:
+        percentage = 100
+
+    return '{:.2f}'.format(voltage) + "v " + '{:.0f}%'.format(percentage)
 
 def secondary_voltage(val):
     conversion_factor = 3 * 3.3 / 65535
@@ -207,6 +219,10 @@ def test_all():
     for level in range(80,0,-10):
         test(level)
 
+def ntfy(msg):
+    requests.post("https://ntfy.sh/BWBirdBoxes",
+                  data=msg.encode(encoding='utf-8'))
+
 # MQTT setup
 def on_message(client, userdata, message):
     if message.retain:
@@ -254,10 +270,11 @@ try:
     # Read the battery level from the solar controller
     level = getBatteryLevel()
     level2 = getBatteryLevel(7)
+    voltage1 = primary_voltage(level)
+    voltage2 = secondary_voltage(level2)
     print ("Battery levels: primary =", level, "secondary =", level2)
-    client.publish("birdboxes/birdbox3/initial_battery_level", level, qos=1, retain=True)
-    client.publish("birdboxes/birdbox3/initial_battery2_level", secondary_voltage(level2), qos=1, retain=True)
-
+    client.publish("birdboxes/birdbox3/initial_battery_level", voltage1, qos=1, retain=True)
+    client.publish("birdboxes/birdbox3/initial_battery2_level", voltage2, qos=1, retain=True)
     stay_up = 15 # default 15-minute time before shutting down, overridden below
     wake_time = noon_tomorrow # default wake-up time
     message = "Default shutdown"
@@ -267,6 +284,7 @@ try:
     print("stay-up duration =", stay_up, "wake-up time =", wake_time)
     client.publish("birdboxes/birdbox3/initial_stay_up", stay_up, qos=1, retain=True)
     client.publish("birdboxes/birdbox3/wake_time", timestr(wake_time), qos=1, retain=True)
+    ntfy(f'BirdBox3 up: batt1 {voltage1}, batt2 {voltage2}, stay up {stay_up} mins')
     # Main watcher loop
     while stay_up > 0:
         # Sleep for one minute
@@ -277,7 +295,7 @@ try:
         level = getBatteryLevel()
         print("now = ", timestr(now), "stay up = ", stay_up, "battery level =", level, "status =", status)
         client.publish("birdboxes/birdbox3/stay_up", stay_up, qos=1, retain=True)
-        client.publish("birdboxes/birdbox3/battery_level", level, qos=1, retain=True)
+        client.publish("birdboxes/birdbox3/battery_level", primary_voltage(level), qos=1, retain=True)
         if len(status) >= 2:
             client.publish("birdboxes/birdbox3/status", int(status[1], base=16), qos=1, retain=True)
         if level < 43000: # low battery, shutdown immediately
@@ -305,6 +323,7 @@ try:
     client.publish("birdboxes/birdbox3/shutdown_time", time.asctime(), qos=1, retain=True)
     client.publish("birdboxes/birdbox3/wake_time", timestr(wake_time), qos=1, retain=True)
     client.publish("birdboxes/birdbox3/message", message, qos=1, retain=True)
+    ntfy(f'BirdBox3 going down until {timestr(wake_time)}')
     if exists("/tmp/noshutdown"): # if shutdown is to be blocked
         print("Shutdown blocked by /tmp/noshutdown, deferring by one hour")
         system_shutdown(message, when="+60") # ToDo: fix shutdown deferral (for fledging!)
