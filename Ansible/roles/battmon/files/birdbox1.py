@@ -195,7 +195,7 @@ try:
     # Read the battery level from the solar controller
     level = getBatteryLevel(numReads=25)
     print ("Battery level = ", level)
-    client.publish("birdboxes/birdbox1/initial_battery_level", level, qos=1, retain=True)
+    client.publish("birdboxes/birdbox1/initial_battery_level", f'{level}%', qos=1, retain=True)
 
     stay_up = 15 # default 15-minute time before shutting down, overridden below
     wake_time = noon_tomorrow # default wake-up time
@@ -217,7 +217,7 @@ try:
         status = piwatcher_status()  # reset the watchdog
         level = getBatteryLevel(numReads=25)
         print("now = ", timestr(now), "stay up = ", stay_up, "battery level =", level, "status =", status)
-        client.publish("birdboxes/birdbox1/battery_level", level, qos=1, retain=True)
+        client.publish("birdboxes/birdbox1/battery_level", f'{level}%', qos=1, retain=True)
         if len(status) >= 2:
             client.publish("birdboxes/birdbox1/status", int(status[1], base=16), qos=1, retain=True)
         if b'button_pressed' in status: # shutdown immediately
