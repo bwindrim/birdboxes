@@ -37,6 +37,7 @@
       Wants=time-sync.target
 
       [Service]
+      ExecStartPre=/bin/sh -c 'until timedatectl show --property=NTPSynchronized | grep -q yes; do sleep 1; done'
       ExecStart=/usr/bin/python3 -O /usr/local/bin/battmon.py
       Environment=PYTHONUNBUFFERED=1
       Restart=on-failure
