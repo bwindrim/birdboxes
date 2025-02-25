@@ -176,9 +176,9 @@ def getBatteryLevel(reg=2):
 def evaluate(now, level):
     "Decide how long to stay up and to sleep, based on current time-of-day and battery level"
     if now < minutes(0,5,30): # It's after midnight but before 5:30, power off until 8:00 today
-        stay_up = 0
+        stay_up = 10
         wake_time = minutes(0,8,0)
-        message = "Night-time immediate shutdown"
+        message = "Night-time immediate (10 min) shutdown"
         return (stay_up, wake_time, message) # early out
     elif now < minutes(0,7,30): # It's after 5:30 but before 7:30, stay up for an hour then power off until 8:00 today
         stay_up = 60
@@ -284,7 +284,7 @@ try:
     print("stay-up duration =", stay_up, "wake-up time =", wake_time)
     client.publish("birdboxes/birdbox3/initial_stay_up", stay_up, qos=1, retain=True)
     client.publish("birdboxes/birdbox3/wake_time", timestr(wake_time), qos=1, retain=True)
-    ntfy(f'BirdBox3 up: batt1 {voltage1}, batt2 {voltage2}, stay up {stay_up} mins')
+    ntfy(f'BirdBox3 up at {timestr(now)}, for {stay_up} mins: batt1 {voltage1}, batt2 {voltage2}')
     # Main watcher loop
     while stay_up > 0:
         # Sleep for one minute
@@ -297,7 +297,9 @@ try:
         client.publish("birdboxes/birdbox3/stay_up", stay_up, qos=1, retain=True)
         client.publish("birdboxes/birdbox3/battery_level", primary_voltage(level), qos=1, retain=True)
         if len(status) >= 2:
-            client.publish("birdboxes/birdbox3/status", int(status[1], base=16), qos=1, retain=True)
+            status_val = int(status[1], base=16)
+            if status_val != 0:
+                client.publish("birdboxes/birdbox3/status", status_val, qos=1, retain=True)
         if level < 43000: # low battery, shutdown immediately
             stay_up = 0
             message = "Low battery, immediate shutdown"
@@ -323,7 +325,7 @@ try:
     client.publish("birdboxes/birdbox3/shutdown_time", time.asctime(), qos=1, retain=True)
     client.publish("birdboxes/birdbox3/wake_time", timestr(wake_time), qos=1, retain=True)
     client.publish("birdboxes/birdbox3/message", message, qos=1, retain=True)
-    ntfy(f'BirdBox3 going down until {timestr(wake_time)}')
+    ntfy(f'BirdBox3 going down at {timestr(now)}, until {timestr(wake_time)}: batt1 {primary_voltage(level)}')
     if exists("/tmp/noshutdown"): # if shutdown is to be blocked
         print("Shutdown blocked by /tmp/noshutdown, deferring by one hour")
         system_shutdown(message, when="+60") # ToDo: fix shutdown deferral (for fledging!)
