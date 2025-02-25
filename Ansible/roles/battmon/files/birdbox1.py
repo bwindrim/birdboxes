@@ -219,7 +219,9 @@ try:
         print("now = ", timestr(now), "stay up = ", stay_up, "battery level =", level, "status =", status)
         client.publish("birdboxes/birdbox1/battery_level", f'{level}%', qos=1, retain=True)
         if len(status) >= 2:
-            client.publish("birdboxes/birdbox1/status", int(status[1], base=16), qos=1, retain=True)
+            status_val = int(status[1], base=16)
+            if status_val != 0:
+                client.publish("birdboxes/birdbox1/status", status_val, qos=1, retain=True)
         if b'button_pressed' in status: # shutdown immediately
 #            piwatcher_reset()        # clear the PiWatcher status
             stay_up = 0
