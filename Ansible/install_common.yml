@@ -40,11 +40,6 @@
         rule: limit
         port: 22
 
-  - name: Allow PiGPIO through UFW
-    ufw:
-        rule: allow
-        port: 8888
-
   - name: Allow raspistill through UFW
     ufw:
         rule: allow
@@ -75,7 +70,6 @@
     ufw:
       state: enabled
       policy: deny
-
 
 - name: Install mpremote on BirdBox3 (only)
   hosts: birdbox3

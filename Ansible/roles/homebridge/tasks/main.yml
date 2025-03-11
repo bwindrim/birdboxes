@@ -1,0 +1,35 @@
+---
+# tasks file for homebridge
+- name: Ensure that pigpio is installed
+  apt:
+    name: pigpio
+    state: present
+
+- name: Install getState
+  copy:
+    dest: /opt/pigpio/cgi/getState
+    src: "getState"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Install access
+  copy:
+    dest: /opt/pigpio/access
+    src: "access"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Allow PiGPIO through UFW
+  ufw:
+      rule: allow
+      port: 8888
+
+- name: Reload systemd and start pigpio service
+  ansible.builtin.systemd:
+    name: pigpiod.service
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
