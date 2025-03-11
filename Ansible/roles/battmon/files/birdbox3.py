@@ -325,7 +325,7 @@ try:
     client.publish("birdboxes/birdbox3/shutdown_time", time.asctime(), qos=1, retain=True)
     client.publish("birdboxes/birdbox3/wake_time", timestr(wake_time), qos=1, retain=True)
     client.publish("birdboxes/birdbox3/message", message, qos=1, retain=True)
-    ntfy(f'BirdBox3 going down at {timestr(now)}, until {timestr(wake_time)}: batt1 {primary_voltage(level)}')
+    ntfy(f'BirdBox3 down at {timestr(now)}, until {timestr(wake_time)}: batt1 {primary_voltage(level)}, {message}')
     if exists("/tmp/noshutdown"): # if shutdown is to be blocked
         print("Shutdown blocked by /tmp/noshutdown, deferring by one hour")
         system_shutdown(message, when="+60") # ToDo: fix shutdown deferral (for fledging!)
