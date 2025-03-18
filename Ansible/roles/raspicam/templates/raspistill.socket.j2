@@ -1,0 +1,12 @@
+[Unit]
+Description=Raspistill Socket
+After=wg-quick@wg0.service
+Requires=wg-quick@wg0.service
+
+[Socket]
+ListenStream={{ wg_ip }}:9999
+Accept=yes
+
+[Install]
+WantedBy=multi-user.target
+

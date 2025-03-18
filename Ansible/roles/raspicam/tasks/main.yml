@@ -1,0 +1,49 @@
+---
+# tasks file for raspicam
+- name: Deploy systemd service for raspistill
+  ansible.builtin.copy:
+    src: "raspistill@.service"
+    dest: "/etc/systemd/system/raspistill@.service"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Deploy systemd timer for raspistill
+  ansible.builtin.copy:
+    src: "raspistill.timer"
+    dest: "/etc/systemd/system/raspistill.timer"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Deploy systemd socket for raspistill
+  ansible.builtin.template:
+    src: raspistill.socket.j2
+    dest: "/etc/systemd/system/raspistill.socket"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Deploy shell script for raspistill
+  ansible.builtin.template:
+    src: raspistill.sh.j2
+    dest: "/etc/systemd/system/raspistill.sh"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Ensure that /mnt/local/photo exists
+  ansible.builtin.file:
+    path: /mnt/local/photo
+    state: directory
+    owner: brian
+    group: brian
+    mode: '0755'
+    
+- name: Reload systemd and start raspistill timer
+  ansible.builtin.systemd:
+    name: raspistill.timer
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
