@@ -89,6 +89,7 @@ def getBatteryLevel(numReads=20):
 
 def evaluate(now, level):
     "Decide how long to stay up and to sleep, based on current time-of-day and battery level"
+    message = "Scheduled shutdown" # default message, may be overridden below
     if now < minutes(0,5,30): # It's after midnight but before 8:30, power off until 9:00 today
         stay_up = 10
         wake_time = minutes(0,8,0)
@@ -97,32 +98,28 @@ def evaluate(now, level):
     elif now < minutes(0,7,30): # It's after 5:30 but before 7:30, stay up for an hour then power off until 8:00 today
         stay_up = 60
         wake_time = minutes(0,8,0)
-        message = "Early morning 1-hour shutdown"
+        message = "Early morning shutdown"
         return (stay_up, wake_time, message) # early out
     elif level >= 100: # 4 battery bars, stay up for 2 hours then power off for 3 hours
         stay_up = 120
         wake_time = now + 360
-        message = "Scheduled two-hour shutdown"
     elif level >= 85: # 3-4 battery bars, stay up for 1.5 hours then power off for 4 hours
         stay_up = 90
         wake_time = now + 360
-        message = "Scheduled one-hour shutdown"
     elif level >= 75: # 3 battery bars, stay up for 1 hour then power off for 5 hours
         stay_up = 60
         wake_time = now + 360
-        message = "Scheduled half-hour shutdown"
     elif level >= 60: # 2-3 battery bars, stay up for 30 minutes then power off for (at least) 12 hours
         stay_up = 30
         wake_time = now + 720
-        message = "Scheduled half-hour shutdown"
     elif level >= 50: # 2 battery bars, stay up for 20 minutes then power off until 8:00 tomorrow
         stay_up = 20
         wake_time = minutes(1,8,0)
-        message = "Scheduled 15-minute shutdown"
+        message = "Scheduled 20-minute shutdown"
     else: # Battery critical, power off immediately until 12:00 tomorrow
         stay_up = 10
-        wake_time = minutes(1,12,0)
-        message = "Emergency shutdown"
+        wake_time = minutes(1,14,0)
+        message = "Emergency shutdown until 2pm tomorrow"
     wake_time = wake_time // 15 * 15 # Round wake time down to nearest 15 minutes
     if wake_time >= minutes(0,23,0): # wake is 11PM or later
         wake_time = max(wake_time, minutes(1,8,0)) # Don't bother waking until 8am
