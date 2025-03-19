@@ -5,8 +5,8 @@ Requires=raspivid.socket
 [Service]
 Type=simple
 #ExecStart=/usr/bin/raspivid -t 0 -n -w 640 -h 480 -o -
-User=pi
-ExecStart=/home/pi/birdboxes/raspivid.sh
+User=brian
+ExecStart=/etc/systemd/system/raspivid.sh
 StandardInput=socket
 StandardError=journal
 TimeoutStopSec=5

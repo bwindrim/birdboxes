@@ -1,7 +1,7 @@
 [Unit]
 Description=Raspivid Socket
-After=wg-quick@server.service
-Requires=wg-quick@server.service
+After=wg-quick@wg0.service
+Requires=wg-quick@wg0.service
 
 [Socket]
 ListenStream={{ wg_ip }}:3333
