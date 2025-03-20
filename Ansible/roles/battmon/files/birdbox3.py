@@ -175,6 +175,7 @@ def getBatteryLevel(reg=2):
 
 def evaluate(now, level):
     "Decide how long to stay up and to sleep, based on current time-of-day and battery level"
+    message = "Scheduled shutdown" # default message, may be overridden below
     if now < minutes(0,5,30): # It's after midnight but before 5:30, power off until 8:00 today
         stay_up = 10
         wake_time = minutes(0,8,0)
@@ -188,7 +189,6 @@ def evaluate(now, level):
     elif level >= 43000: # battery OK, stay up for 4 hours then power off for 2 hours
         stay_up = 240
         wake_time = now + stay_up + 120
-        message = "Scheduled two-hour shutdown"
     else: # Battery low, power off immediately until 12:00 tomorrow
         stay_up = 0
         wake_time = minutes(1,12,0)
