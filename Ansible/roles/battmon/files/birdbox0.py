@@ -44,8 +44,8 @@ def piwatcher_led(state):
     setting = "off"
     if state:
         setting = "on"
-#     result = subprocess.run(["/usr/local/bin/piwatcher", "led", setting], capture_output=True)
-#     print("PiWatcher status =", result)
+    result = subprocess.run(["/usr/local/bin/piwatcher", "led", setting], capture_output=True)
+    print("PiWatcher status =", result)
 
 def piwatcher_wake(minutes):
     "Set the wake interval for PiWatcher"
