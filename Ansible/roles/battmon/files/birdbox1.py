@@ -118,8 +118,12 @@ def evaluate(now, level):
         message = "Scheduled 20-minute shutdown"
     else: # Battery critical, power off immediately until 12:00 tomorrow
         stay_up = 10
-        wake_time = minutes(1,14,0)
-        message = "Emergency shutdown until 2pm tomorrow"
+        if now >= minutes(0, 12, 0):
+            wake_time = minutes(1,14,0)
+            message = "Emergency shutdown until 2pm tomorrow"
+        else:
+            wake_time = minutes(0,14,0)
+            message = "Emergency shutdown until 2pm today"
     wake_time = wake_time // 15 * 15 # Round wake time down to nearest 15 minutes
     if wake_time >= minutes(0,23,0): # wake is 11PM or later
         wake_time = max(wake_time, minutes(1,8,0)) # Don't bother waking until 8am
