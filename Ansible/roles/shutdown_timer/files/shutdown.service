@@ -1,0 +1,8 @@
+[Unit]
+Description=Shutdown the system daily at 1am
+Wants=shutdown.timer
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/shutdown -h now
+

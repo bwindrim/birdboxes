@@ -1,0 +1,6 @@
+---
+- hosts: birdbox2
+  become: true
+  roles:
+    - shutdown_timer
+
