@@ -5,7 +5,5 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-User=pi
-ExecStart=/home/pi/birdboxes/snap.sh
-
-
+User=brian
+ExecStart=/etc/systemd/system/timelapse.sh

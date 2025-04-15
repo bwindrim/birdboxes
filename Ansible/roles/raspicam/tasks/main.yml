@@ -39,7 +39,7 @@
     owner: brian
     group: brian
     mode: '0755'
-    
+
 - name: Reload systemd and start raspistill timer
   ansible.builtin.systemd:
     name: raspistill.timer
@@ -86,10 +86,49 @@
     owner: brian
     group: brian
     mode: '0755'
-    
+
 - name: Reload systemd and start raspivid timer
   ansible.builtin.systemd:
     name: raspivid.timer
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Deploy systemd service for timelapse
+  ansible.builtin.copy:
+    src: "timelapse.service"
+    dest: "/etc/systemd/system/timelapse.service"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Deploy systemd timer for timelapse
+  ansible.builtin.copy:
+    src: "timelapse.timer"
+    dest: "/etc/systemd/system/timelapse.timer"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Deploy shell script for timelapse
+  ansible.builtin.template:
+    src: timelapse.sh.j2
+    dest: "/etc/systemd/system/timelapse.sh"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Ensure that /mnt/local/timelapse exists
+  ansible.builtin.file:
+    path: /mnt/local/timelapse
+    state: directory
+    owner: brian
+    group: brian
+    mode: '0755'
+
+- name: Reload systemd and start timelapse timer
+  ansible.builtin.systemd:
+    name: timelapse.timer
     state: started
     enabled: yes
     daemon_reload: yes
