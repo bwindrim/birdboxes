@@ -1,0 +1,39 @@
+---
+# tasks file for rsync
+- name: Install rsync
+  ansible.builtin.package:
+    name: rsync
+    state: present
+
+- name: Create directory for rsync data
+  ansible.builtin.file:
+    path: "{{ rsync_data_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Configure rsync daemon for anonymous read-only
+  ansible.builtin.copy:
+    dest: /etc/rsyncd.conf
+    content: |
+      pid file = /var/run/rsyncd.pid
+      log file = /var/log/rsyncd.log
+      port = 873
+
+      [data]
+      path = {{ rsync_data_dir }}
+      comment = Anonymous Rsync Data
+      read only = yes
+      list = yes
+      uid = nobody
+      gid = nogroup
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Enable and start rsync as a daemon
+  ansible.builtin.systemd:
+    name: rsync
+    enabled: true
+    state: started

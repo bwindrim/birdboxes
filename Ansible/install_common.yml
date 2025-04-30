@@ -50,7 +50,7 @@
         rule: allow
         port: 3333
 
-  - name: Allow ??? through UFW
+  - name: Allow rsync through UFW
     ufw:
         rule: allow
         port: 873

@@ -114,8 +114,12 @@ def evaluate(now, level):
         wake_time = now + 720
     elif level >= 50: # 2 battery bars, stay up for 20 minutes then power off until 8:00 tomorrow
         stay_up = 20
-        wake_time = minutes(1,8,0)
-        message = "Scheduled 20-minute shutdown"
+        if now >= minutes(0, 12, 0): # is after midday
+            wake_time = minutes(1,8,0)
+            message = "Low battery shutdown until 12pm tomorrow"
+        else:
+            wake_time = minutes(0,,0)
+            message = "Low battery shutdown until 12pm today"
     else: # Battery critical, power off immediately until 12:00 tomorrow
         stay_up = 10
         if now >= minutes(0, 12, 0):
