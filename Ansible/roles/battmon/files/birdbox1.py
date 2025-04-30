@@ -118,7 +118,7 @@ def evaluate(now, level):
             wake_time = minutes(1,8,0)
             message = "Low battery shutdown until 12pm tomorrow"
         else:
-            wake_time = minutes(0,,0)
+            wake_time = minutes(0,8,0)
             message = "Low battery shutdown until 12pm today"
     else: # Battery critical, power off immediately until 12:00 tomorrow
         stay_up = 10
