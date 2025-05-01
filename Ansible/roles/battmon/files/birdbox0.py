@@ -118,8 +118,8 @@ def evaluate(now, level):
             wake_time = minutes(1,8,0)
             message = "Low battery shutdown until 12pm tomorrow"
         else:
-            wake_time = minutes(0,8,0)
-            message = "Low battery shutdown until 12pm today"
+            wake_time = minutes(0,14,0)
+            message = "Low battery shutdown until 2pm today"
     else: # Battery critical, power off immediately until 12:00 tomorrow
         stay_up = 10
         if now >= minutes(0, 12, 0):
@@ -160,7 +160,7 @@ def on_message(client, userdata, message):
         print(message.topic, "=", str(message.payload.decode("utf-8")), "(retained)")
     else:
         print(message.topic, "=", str(message.payload.decode("utf-8")), "(live)")
-    if message.topic is "birdboxes/birdbox0/force_up":
+    if message.topic == "birdboxes/birdbox0/force_up":
         if message.payload:
             force_up = bool(int.from_bytes(message.payload, byteorder='little'))
         else:
