@@ -187,8 +187,8 @@ def evaluate(now, level):
         message = "Early morning 1-hour shutdown"
         return (stay_up, wake_time, message) # early out
     elif level >= 43000: # battery OK, stay up for 4 hours then power off for 2 hours
-        stay_up = 240
-        wake_time = now + stay_up + 120
+        stay_up = 120
+        wake_time = now + stay_up + 240
     else: # Battery low, power off immediately until 12:00 tomorrow
         stay_up = 0
         wake_time = minutes(1,12,0)
