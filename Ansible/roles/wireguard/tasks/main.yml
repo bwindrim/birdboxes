@@ -11,7 +11,7 @@
     state: directory
     mode: '0700'
 
-- name: Generate private key if not present
+- name: Generate private key if not present (remember to copy to server's wg0.conf)
   ansible.builtin.shell: wg genkey | tee /etc/wireguard/private.key
   args:
     creates: /etc/wireguard/private.key
@@ -55,3 +55,11 @@
     state: started
     enabled: yes
     daemon_reload: yes
+
+- name: Ensure wg-quick@wg0 is enabled and started
+  ansible.builtin.systemd:
+    name: wg-quick@wg0
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  become: yes

@@ -5,6 +5,11 @@
 
   tasks:
 
+  - name: Ensure that resolvconf is installed (not installed by default on Trixie)
+    apt:
+      name: resolvconf
+      state: present
+
   - name: Ensure that WireGuard is installed
     apt:
       name: wireguard

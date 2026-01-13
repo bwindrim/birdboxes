@@ -1,29 +1,22 @@
 all:
   hosts:
-    birdbox0:
-      ansible_host: birdbox0 # use WireGuard for SSH
-      ansible_user: brian
-      wireguard_address: 192.168.3.10/24
-      wireguard_endpoint: "192.168.58.23:53798"
-      wg_ip: 192.168.3.10
-      image_prefix: BB0
     birdbox1:
-      ansible_host: birdbox1
+      ansible_host: birdbox1.local # use direct local connection for SSH
       ansible_user: brian
       wireguard_address: 192.168.3.11/24
-#      wireguard_endpoint: "192.168.58.23:53798"
-      wireguard_endpoint: "bwbirdboxes.duckdns.org:53798"
+      wireguard_endpoint: "192.168.58.23:53798"
+#      wireguard_endpoint: "bwbirdboxes.duckdns.org:53798"
       wg_ip: 192.168.3.11
       image_prefix: BB1
     birdbox2:
-      ansible_host: birdbox2
+      ansible_host: birdbox2.local # use direct local connection for SSH
       ansible_user: brian
       wireguard_address: 192.168.3.12/24
       wireguard_endpoint: "bwbirdboxes.duckdns.org:53798"
       wg_ip: 192.168.3.12
       image_prefix: BB2
     birdbox3:
-      ansible_host: birdbox3
+      ansible_host: birdbox3.local # use direct local connection for SSH
       ansible_user: brian
       wireguard_address: 192.168.3.13/24
       wireguard_endpoint: "192.168.58.23:53798"
@@ -32,45 +25,39 @@ all:
   children:
     birdboxes:
       hosts:
-        birdbox0: {}
         birdbox1: {}
         birdbox2: {}
         birdbox3: {}
     wireguard_clients:
       hosts:
-        birdbox0:
         birdbox1: {}
         birdbox2: {}
         birdbox3: {}
     nfs_clients:
       hosts:
-        birdbox0: {}
         birdbox1: {}
         birdbox2: {}
         birdbox3: {}
     rsync_servers:
       hosts:
-        birdbox0: {}
         birdbox1: {}
         birdbox2: {}
         birdbox3: {}
     iperf3_servers:
       hosts:
-        birdbox0: {}
         birdbox1: {}
         birdbox2: {}
         birdbox3: {}
     piwatchers:
       hosts:
-        birdbox0: {}
         birdbox1: {}
+        birdbox2: {}
         birdbox3: {}
     lte_ppp_nodes:
       hosts:
         birdbox1: {}
     battmon_hosts:
       hosts:
-        birdbox0: {}
         birdbox1: {}
         birdbox3: {}
 
