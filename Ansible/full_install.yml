@@ -1,0 +1,148 @@
+---
+- name: install necessary packages for birdboxes
+  hosts: birdboxes
+  become: yes
+
+  tasks:
+
+  - name: Ensure that WireGuard is installed
+    apt:
+      name: wireguard
+      state: present
+
+  - name: Ensure that net-tools is installed
+    apt:
+      name: net-tools
+      state: present
+
+  - name: Ensure that build-essential is installed
+    apt:
+      name: build-essential
+      state: present
+
+  - name: Ensure that iperf3 is installed
+    apt:
+      name: iperf3
+      state: present
+
+  - name: Ensure that Paho MQTT is installed
+    apt:
+      name: python3-paho-mqtt
+      state: present
+
+  - name: Ensure that UFW is installed
+    apt:
+      name: ufw
+      state: present
+
+  - name: Allow SSH through UFW
+    ufw:
+        rule: limit
+        port: 22
+
+  - name: Allow raspistill through UFW
+    ufw:
+        rule: allow
+        port: 9999
+
+  - name: Allow raspivid through UFW
+    ufw:
+        rule: allow
+        port: 3333
+
+  - name: Allow rsync through UFW
+    ufw:
+        rule: allow
+        port: 873
+
+  - name: Allow WireGuard through UFW
+    ufw:
+        rule: allow
+        port: 51820
+        proto: udp
+
+  - name: Allow iperf3 through UFW
+    ufw:
+        rule: allow
+        port: 5201
+
+  - name: Enable UFW
+    ufw:
+      state: enabled
+      policy: deny
+
+- name: Install mpremote on BirdBox3 (only)
+  hosts: birdbox3
+  become: yes
+
+  tasks:
+
+  - name: Ensure that pip3 is installed
+    apt:
+      name: python3-pip
+      state: present
+
+  - name: Ensure that mpremote is installed
+    pip:
+      name: mpremote
+      state: present
+
+- name: Install and configure WireGuard
+  hosts: wireguard_clients
+  become: yes
+  pre_tasks:
+    - name: Include Vault-encrypted variables
+      ansible.builtin.include_vars:
+        file: vault/wireguard_clients/vault.yml
+      when: "'wireguard_clients' in group_names"
+  roles:
+    - wireguard
+
+
+- name: Install and configure the battery monitor service
+  hosts: battmon_hosts
+  become: yes
+  roles:
+    - battmon
+
+- name: Setup pigpio for Homebridge
+  hosts: birdboxes
+  become: yes
+  roles:
+    - homebridge
+
+- name: Install iperf3 and configure as a service
+  hosts: iperf3_servers
+  become: yes
+  roles:
+    - iperf3-server
+
+- name: Install and configure Clipper PPP peer and service
+  hosts: lte_ppp_nodes
+  become: yes
+  roles:
+    - lte-ppp-node
+
+- name: Install piwatcher command binary
+  hosts: piwatchers
+  become: yes
+  roles:
+    - piwatcher
+
+- name: Setup raspistill and raspivid services
+  hosts: birdboxes
+  become: yes
+  roles:
+    - raspicam
+
+- name: Install and configure the rsync service
+  hosts: birdboxes
+  become: yes
+  roles:
+    - rsync
+
+- hosts: birdbox2
+  become: true
+  roles:
+    - shutdown_timer
+
