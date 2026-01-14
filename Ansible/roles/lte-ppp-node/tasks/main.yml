@@ -1,5 +1,14 @@
 ---
 # tasks file for lte-ppp-node
+
+- name: Enable serial port on Raspberry Pi
+  ansible.builtin.command: raspi-config nonint do_serial_hw 1
+  become: yes
+
+- name: Disable serial login shell on Raspberry Pi
+  ansible.builtin.command: raspi-config nonint do_serial_cons 0
+  become: yes
+
 - name: Deploy PPP peer for Clipper LTE
   ansible.builtin.template:
     src: clipper.j2

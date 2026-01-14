@@ -103,13 +103,6 @@
   roles:
     - wireguard
 
-
-- name: Install and configure the battery monitor service
-  hosts: battmon_hosts
-  become: yes
-  roles:
-    - battmon
-
 - name: Setup pigpio for Homebridge
   hosts: birdboxes
   become: yes
@@ -121,12 +114,6 @@
   become: yes
   roles:
     - iperf3-server
-
-- name: Install and configure Clipper PPP peer and service
-  hosts: lte_ppp_nodes
-  become: yes
-  roles:
-    - lte-ppp-node
 
 - name: Install piwatcher command binary
   hosts: piwatchers
@@ -146,8 +133,15 @@
   roles:
     - rsync
 
-- hosts: birdbox2
-  become: true
+- name: Install and configure the battery monitor service
+  hosts: battmon_hosts
+  become: yes
   roles:
-    - shutdown_timer
+    - battmon
+
+- name: Install and configure Clipper PPP peer and service
+  hosts: lte_ppp_nodes
+  become: yes
+  roles:
+    - lte-ppp-node
 

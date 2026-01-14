@@ -49,7 +49,7 @@
 - name: Enable and start battmon service
   systemd:
     name: battmon
-    enabled: yes
-    state: started
-    daemon_reload: yes
+    enabled: no
+    state: stopped
+    daemon_reload: no
 

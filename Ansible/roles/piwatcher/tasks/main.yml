@@ -48,6 +48,6 @@
 - name: Enable PiWatcher service, but don't start it now
   systemd:
     name: piwatcher
-    enabled: yes
+    enabled: no
     state: stopped
     daemon_reload: no
