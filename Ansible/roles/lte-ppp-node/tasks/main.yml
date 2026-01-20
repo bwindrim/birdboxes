@@ -25,6 +25,76 @@
     group: root
     mode: '0644'
 
+# Configure PPP policy routing and loose rp_filter
+# Suitable for multi-homed systems (eth0 + ppp0 + WireGuard)
+
+- name: Ensure iproute2 is installed
+  package:
+    name: iproute2
+    state: present
+
+- name: Enable loose rp_filter persistently
+  copy:
+    dest: /etc/sysctl.d/99-multihome.conf
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      net.ipv4.conf.all.rp_filter = 2
+      net.ipv4.conf.default.rp_filter = 2
+      net.ipv4.conf.eth0.rp_filter = 2
+      net.ipv4.conf.ppp0.rp_filter = 2
+  notify: reload sysctl
+
+- name: Ensure /etc/iproute2 directory exists
+  file:
+    path: /etc/iproute2
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Ensure rt_tables file exists
+  file:
+    path: /etc/iproute2/rt_tables
+    state: touch
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Ensure PPP routing table exists
+  lineinfile:
+    path: /etc/iproute2/rt_tables
+    regexp: '^\s*200\s+ppp$'
+    line: '200 ppp'
+    state: present
+
+
+- name: Install PPP ip-up policy routing script
+  copy:
+    dest: /etc/ppp/ip-up.d/90-policy-routing
+    owner: root
+    group: root
+    mode: '0755'
+    content: |
+      #!/bin/sh
+      #
+      # Source-based routing for PPP (LTE)
+      #
+
+      TABLE="ppp"
+      PPP_IF="$1"
+      PPP_IP="$IPLOCAL"
+
+      [ -z "$PPP_IP" ] && exit 0
+
+      # Add source-based routing rule (ignore if already present)
+      ip rule add from ${PPP_IP}/32 table ${TABLE} 2>/dev/null || true
+
+      # Ensure default route exists in PPP table
+      ip route replace default dev ${PPP_IF} table ${TABLE}
+
+
 - name: Reload systemd and start Clipper service
   ansible.builtin.systemd:
     name: clipper.service

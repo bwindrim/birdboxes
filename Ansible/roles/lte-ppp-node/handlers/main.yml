@@ -1,2 +1,4 @@
 ---
 # handlers file for lte-ppp-node
+- name: Reload sysctl
+  command: sysctl --system
