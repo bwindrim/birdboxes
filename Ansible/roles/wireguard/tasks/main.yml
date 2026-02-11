@@ -11,7 +11,7 @@
     state: directory
     mode: '0700'
 
-- name: Generate private key if not present (remember to copy to server's wg0.conf)
+- name: Generate private key if not present (remember to copy public key to server's wg0.conf, if new)
   ansible.builtin.shell: wg genkey | tee /etc/wireguard/private.key
   args:
     creates: /etc/wireguard/private.key
@@ -32,6 +32,14 @@
     dest: /etc/wireguard/wg0.conf
     mode: '0600'
   notify: Restart WireGuard
+
+- name: Replace reresolve-dns.sh with custom version
+  ansible.builtin.copy:
+    src: reresolve-dns.sh
+    dest: /usr/share/doc/wireguard-tools/examples/reresolve-dns/reresolve-dns.sh
+    owner: root
+    group: root
+    mode: '0755'
 
 - name: Deploy systemd service for DNS re-resolve
   ansible.builtin.template:

@@ -20,6 +20,11 @@
       name: net-tools
       state: present
 
+  - name: Ensure that tcpdump is installed
+    apt:
+      name: tcpdump
+      state: present
+
   - name: Ensure that build-essential is installed
     apt:
       name: build-essential
