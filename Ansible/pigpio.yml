@@ -1,0 +1,6 @@
+---
+- name: Install and configure pigpio
+  hosts: birdboxes
+  become: yes
+  roles:
+    - pigpio

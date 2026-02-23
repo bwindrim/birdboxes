@@ -1,0 +1,9 @@
+---
+# handlers file for pigpio
+
+- name: Restart pigpiod
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: pigpiod
+    state: restarted
