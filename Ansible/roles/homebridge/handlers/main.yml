@@ -1,2 +1,9 @@
 ---
 # handlers file for homebridge
+
+- name: Restart pigpiod
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: pigpiod
+    state: restarted

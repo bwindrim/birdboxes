@@ -5,6 +5,28 @@
     name: pigpio
     state: present
 
+- name: Ensure pigpiod override directory exists
+  become: true
+  ansible.builtin.file:
+    path: /etc/systemd/system/pigpiod.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Remove -l from pigpiod by overriding ExecStart
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/pigpiod.service.d/override.conf
+    content: |
+      [Service]
+      ExecStart=
+      ExecStart=/usr/bin/pigpiod
+    owner: root
+    group: root
+    mode: '0644'
+#  notify: Restart pigpiod
+
 - name: Install getState
   copy:
     dest: /opt/pigpio/cgi/getState
