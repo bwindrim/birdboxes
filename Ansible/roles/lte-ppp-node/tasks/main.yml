@@ -1,6 +1,16 @@
 ---
 # tasks file for lte-ppp-node
 
+- name: Configure Raspberry Pi UART to use PL011 on GPIO
+  become: true
+  ansible.builtin.blockinfile:
+    path: /boot/config.txt
+    marker: "# {mark} ANSIBLE MANAGED UART CONFIG"
+    block: |
+      enable_uart=1
+      dtoverlay=disable-bt
+  notify: Reboot raspberry pi
+  
 - name: Disable serial login shell on Raspberry Pi
   ansible.builtin.command: raspi-config nonint do_serial_cons 0
   become: yes

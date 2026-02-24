@@ -15,8 +15,10 @@
 connect "/usr/sbin/chat -v -f /etc/chatscripts/gprs -T mob.asm.net"
 #connect "/usr/sbin/chat -v -f /etc/chatscripts/gprs -T iot.1nce.net"
 
-# Serial device to which the modem is connected.
-/dev/ttyS0
+# Serial device to which the modem is connected. This needs to be ttyAMA0 for
+# high-speed (e.g. 921600 baud), so Bluetooth needs to have been disabled
+# (i.e. on Pi Zero W) to free up the PL011 UART.
+/dev/ttyAMA0
 
 # Speed of the serial line.
 #115200

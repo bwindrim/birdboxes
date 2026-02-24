@@ -2,3 +2,9 @@
 # handlers file for lte-ppp-node
 - name: Reload sysctl
   command: sysctl --system
+
+- name: Reboot raspberry pi
+  become: true
+  ansible.builtin.reboot:
+    msg: "Rebooting to switch primary UART to PL011"
+    reboot_timeout: 300
