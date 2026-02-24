@@ -3,5 +3,5 @@
 FILE=$(date +"{{ image_prefix }}_%FT%H:%M:%S.h264")
 LOCAL_PATH=/mnt/local/video
 
-/usr/bin/raspivid -awb off -awbg '1.0,1.0' -t 0 -n -w 640 -h 480 -b 700000 -o - | tee --output-error=exit $LOCAL_PATH/$FILE
+/usr/bin/rpicam-vid --mode 1640:1232:10 --tuning-file /usr/share/libcamera/ipa/rpi/vc4/imx219_noir.json --nopreview --timeout 0 --width 640 --height 480 --bitrate 700000 -o - | tee --output-error=exit $LOCAL_PATH/$FILE
 chmod a-w $LOCAL_PATH/$FILE
