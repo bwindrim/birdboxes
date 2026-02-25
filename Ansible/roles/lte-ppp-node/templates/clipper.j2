@@ -12,7 +12,8 @@
 # MUST CHANGE: replace ******** with the phone number of your provider.
 # The /etc/chatscripts/pap chat script may be modified to change the
 # modem initialization string.
-connect "/usr/sbin/chat -v -f /etc/chatscripts/gprs -T mob.asm.net"
+connect "/usr/sbin/chat -v -f /etc/chatscripts/lte-simcom -T mob.asm.net"
+#connect "/usr/sbin/chat -v -f /etc/chatscripts/gprs -T mob.asm.net"
 #connect "/usr/sbin/chat -v -f /etc/chatscripts/gprs -T iot.1nce.net"
 
 # Serial device to which the modem is connected. This needs to be ttyAMA0 for
@@ -46,3 +47,20 @@ nocrtscts
 # Disable modem control lines (CD/DTR)
 local
 
+ipcp-accept-local
+ipcp-accept-remote
+
+maxfail 0
+holdoff 5
+
+# Fast failure detection + keep PDP alive
+lcp-echo-interval 10
+lcp-echo-failure 3
+
+# High-throughput tuning
+mtu 1500
+mru 1500
+novj
+noccp
+nobsdcomp
+nodeflate

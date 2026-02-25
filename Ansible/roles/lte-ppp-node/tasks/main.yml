@@ -21,6 +21,14 @@
   become: yes
   changed_when: false
 
+- name: Copy lte-simcom to /etc/chatscripts
+  ansible.builtin.copy:
+    src: lte-simcom
+    dest: /etc/chatscripts/lte-simcom
+    owner: root
+    group: root
+    mode: '0644'
+
 - name: Deploy PPP peer for Clipper LTE
   ansible.builtin.template:
     src: clipper.j2
@@ -36,6 +44,15 @@
     owner: root
     group: root
     mode: '0644'
+
+- name: Stop and disable ModemManager service
+  become: true
+  ansible.builtin.systemd:
+    name: ModemManager.service
+    state: stopped
+    enabled: no
+    masked: yes
+  ignore_errors: yes
 
 - name: Reload systemd and start Clipper service
   ansible.builtin.systemd:

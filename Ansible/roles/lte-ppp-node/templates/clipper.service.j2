@@ -7,6 +7,13 @@ Type=forking
 ExecStart=/usr/bin/pon clipper
 ExecStop=/usr/bin/poff clipper
 Restart=always
+RestartSec=5
+
+
+# Give PPP real-time priority (protects 921600 baudrate under load)
+CPUSchedulingPolicy=fifo
+CPUSchedulingPriority=40
+
 
 [Install]
 WantedBy=multi-user.target
