@@ -1,0 +1,12 @@
+---
+# WireGuard IP address of Pi2B
+nfs_server: "192.168.3.1"
+
+# NFS share on Pi2B
+nfs_share: "/mnt/SanDisk128GB"
+
+# Mount point on the client host(s)
+nfs_mount_point: "/mnt/remote"
+
+# Mount options persisted in /etc/fstab
+nfs_mount_opts: "defaults,bg"

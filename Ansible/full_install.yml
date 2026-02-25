@@ -20,6 +20,11 @@
       name: build-essential
       state: present
 
+  - name: Ensure that tcpdump is installed
+    apt:
+      name: tcpdump
+      state: present
+
   - name: Ensure that iperf3 is installed
     apt:
       name: iperf3
@@ -140,6 +145,12 @@
   become: yes
   roles:
     - rsync
+
+- name: Configure Debian hosts as NFS clients
+  hosts: nfs_clients
+  become: true
+  roles:
+    - nfs-client
 
 - hosts: birdbox2
   become: true
