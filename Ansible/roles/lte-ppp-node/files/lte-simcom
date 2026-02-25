@@ -1,0 +1,35 @@
+ABORT BUSY
+ABORT VOICE
+ABORT "NO CARRIER"
+ABORT "NO DIALTONE"
+ABORT "NO ANSWER"
+ABORT ERROR
+REPORT CONNECT
+
+TIMEOUT 10
+"" AT
+OK ATE0
+OK ATH
+
+# Force full functionality (recovers from RF glitches)
+OK AT+CFUN=1
+
+# Disable automatic sleep / power saving
+OK      AT+CSCLK=0
+OK      AT+CPSMS=0
+OK      AT+CEDRXS=0
+
+# Enable automatic network attach
+OK AT+CGATT=1
+
+# Define PDP context
+OK AT+CGDCONT=1,"IP","\T","",0,0
+
+OK AT+CEREG?
+TIMEOUT 2
+"+CEREG: 0,1" ""
+
+# Dial packet data
+OK ATD*99#
+TIMEOUT 30
+CONNECT ""
