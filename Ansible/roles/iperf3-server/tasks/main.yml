@@ -16,8 +16,7 @@
       [Service]
       ExecStart=/usr/bin/iperf3 -s
       Restart=always
-      User=nobody
-      Group=nogroup
+      DynamicUser=yes
 
       [Install]
       WantedBy=multi-user.target
