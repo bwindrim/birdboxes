@@ -19,8 +19,8 @@ connect "/usr/sbin/chat -v -f /etc/chatscripts/gprs -T mob.asm.net"
 /dev/ttyAMA0
 
 # Speed of the serial line.
-#115200
-#230400
+# 115200
+# 230400
 921600 # max for Raspberry Pi with default clocks
 
 # Assumes that your IP address is allocated dynamically by the ISP.
@@ -33,6 +33,9 @@ replacedefaultroute
 
 # Makes pppd "dial again" when the connection is lost.
 persist
+
+# Run a hook whenever the PPP link drops, before reconnect attempts.
+ip-down-script /usr/local/sbin/clipper-ppp-link-lost.sh
 
 # Do not ask the remote to authenticate.
 noauth
