@@ -23,8 +23,11 @@
   register: private_key
 
 - name: Generate public key from private key
-  ansible.builtin.shell: echo "{{ private_key['content'] | b64decode }}" | wg pubkey
+  ansible.builtin.command: wg pubkey
+  args:
+    stdin: "{{ private_key['content'] | b64decode }}"
   register: public_key
+  changed_when: private_key_generation.changed | default(false)
 
 - name: Configure WireGuard interface
   ansible.builtin.template:
@@ -32,6 +35,32 @@
     dest: /etc/wireguard/wg0.conf
     mode: '0600'
   notify: Restart WireGuard
+
+- name: Ensure systemd drop-in directory exists for wg-quick@wg0
+  ansible.builtin.file:
+    path: /etc/systemd/system/wg-quick@wg0.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Configure wg-quick@wg0 to start after clipper.service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/wg-quick@wg0.service.d/override.conf
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Wants=clipper.service
+      After=clipper.service
+
+- name: Enable and start wg-quick@wg0 service
+  ansible.builtin.systemd:
+    name: wg-quick@wg0
+    state: started
+    enabled: yes
+    daemon_reload: yes
 
 - name: Deploy systemd service for DNS re-resolve
   ansible.builtin.template:
