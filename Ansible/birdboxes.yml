@@ -1,14 +1,5 @@
 all:
   hosts:
-    birdbox1:
-      ansible_host: birdbox1.local # use direct local connection for SSH
-      ansible_user: brian
-      wireguard_address: 192.168.3.11/24
-#      wireguard_endpoint: "192.168.58.23:53798"
-      wireguard_endpoint: "bwbirdboxes.duckdns.org:53798"
-#      wireguard_endpoint: "188.28.234.144:53798"
-      wg_ip: 192.168.3.11
-      image_prefix: BB1
     birdbox2:
       ansible_host: birdbox2.local # use direct local connection for SSH
       ansible_user: brian
