@@ -1,0 +1,11 @@
+---
+- name: Install and configure WireGuard
+  hosts: wireguard_clients
+  become: yes
+  pre_tasks:
+    - name: Include Vault-encrypted variables
+      ansible.builtin.include_vars:
+        file: vault/wireguard_clients/vault.yml
+      when: "'wireguard_clients' in group_names"
+  roles:
+    - wireguard

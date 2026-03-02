@@ -1,0 +1,9 @@
+[Unit]
+Description=Take a still photo
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=brian
+ExecStart=/etc/systemd/system/timelapse.sh

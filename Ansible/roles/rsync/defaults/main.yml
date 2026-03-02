@@ -1,0 +1,3 @@
+---
+# defaults file for rsync
+rsync_data_dir: /mnt/local

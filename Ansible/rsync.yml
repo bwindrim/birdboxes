@@ -1,0 +1,6 @@
+---
+- name: Install and configure the rsync service
+  hosts: birdboxes
+  become: yes
+  roles:
+    - rsync

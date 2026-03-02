@@ -1,0 +1,6 @@
+---
+- name: Setup pigpio for Homebridge
+  hosts: birdboxes
+  become: yes
+  roles:
+    - homebridge

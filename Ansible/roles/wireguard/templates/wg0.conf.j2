@@ -1,0 +1,14 @@
+[Interface]
+PrivateKey = {{ private_key['content'] | b64decode }}
+Address = {{ wireguard_address }}
+ListenPort = {{ wireguard_port }}
+DNS = {{ wireguard_dns }}
+MTU = 1280
+
+{% for peer in wireguard_peers %}
+[Peer]
+PublicKey = {{ peer.public_key }}
+AllowedIPs = {{ peer.allowed_ips }}
+Endpoint = {{ wireguard_endpoint }}
+PersistentKeepalive = {{ peer.persistent_keepalive }}
+{% endfor %}

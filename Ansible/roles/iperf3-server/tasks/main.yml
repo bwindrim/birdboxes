@@ -1,0 +1,31 @@
+---
+- name: Install iperf3
+  ansible.builtin.package:
+    name: iperf3
+    state: present
+  become: yes
+
+- name: Create iperf3 systemd service
+  copy:
+    dest: /etc/systemd/system/iperf3.service
+    content: |
+      [Unit]
+      Description=iperf3 server
+      After=network.target
+
+      [Service]
+      ExecStart=/usr/bin/iperf3 -s
+      Restart=always
+      DynamicUser=yes
+
+      [Install]
+      WantedBy=multi-user.target
+  notify: Reload systemd
+
+- name: Enable and start iperf3 service
+  systemd:
+    name: iperf3
+    enabled: yes
+    state: started
+    daemon_reload: yes
+

@@ -1,0 +1,18 @@
+---
+# WireGuard IP address of Pi2B
+nfs_server: "192.168.3.1"
+
+# NFS share on Pi2B
+nfs_share: "/mnt/SanDisk128GB"
+
+# Mount point on the client host(s)
+nfs_mount_point: "/mnt/remote"
+
+# fstab mount options chosen to avoid boot hangs when server is unreachable
+nfs_mount_opts: "defaults,bg,nofail,_netdev,x-systemd.automount,x-systemd.mount-timeout=10s,timeo=5,retrans=2"
+
+# Whether to attempt an immediate mount during playbook execution
+nfs_mount_now: false
+
+# Timeout for the optional immediate mount attempt
+nfs_mount_timeout_seconds: 15

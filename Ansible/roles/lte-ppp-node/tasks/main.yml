@@ -1,0 +1,33 @@
+---
+# tasks file for lte-ppp-node
+- name: Deploy PPP peer for Clipper LTE
+  ansible.builtin.template:
+    src: clipper.j2
+    dest: "/etc/ppp/peers/clipper"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Deploy PPP link-lost hook for Clipper LTE
+  ansible.builtin.template:
+    src: clipper-ppp-link-lost.sh.j2
+    dest: "/usr/local/sbin/clipper-ppp-link-lost.sh"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Deploy systemd service for Clipper LTE
+  ansible.builtin.template:
+    src: clipper.service.j2
+    dest: "/etc/systemd/system/clipper.service"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Reload systemd and start Clipper service
+  ansible.builtin.systemd:
+    name: clipper.service
+    state: started
+    enabled: yes
+    daemon_reload: yes
+

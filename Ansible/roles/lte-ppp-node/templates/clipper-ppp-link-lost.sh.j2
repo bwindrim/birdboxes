@@ -1,0 +1,5 @@
+#!/bin/sh
+# Called by pppd when the link is torn down.
+# pppd argv: interface tty speed localIP remoteIP ipparam
+/usr/bin/logger -t clipper-ppp "PPP link lost on ${1:-unknown}; reconnect will be attempted by pppd"
+exit 0
