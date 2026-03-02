@@ -1,0 +1,22 @@
+---
+# tasks file for shutdown_timer
+- name: Copy shutdown systemd service
+  copy:
+    src: shutdown.service
+    dest: /etc/systemd/system/shutdown.service
+    mode: '0644'
+
+- name: Copy shutdown systemd timer
+  copy:
+    src: shutdown.timer
+    dest: /etc/systemd/system/shutdown.timer
+    mode: '0644'
+
+- name: Reload systemd
+  command: systemctl daemon-reexec
+
+- name: Enable and start shutdown.timer
+  systemd:
+    name: shutdown.timer
+    enabled: true
+    state: started

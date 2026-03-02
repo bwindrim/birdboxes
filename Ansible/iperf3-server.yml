@@ -1,0 +1,6 @@
+---
+- name: Install iperf3 and configure as a service
+  hosts: iperf3_servers
+  become: yes
+  roles:
+    - iperf3-server

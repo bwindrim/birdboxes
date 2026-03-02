@@ -1,0 +1,59 @@
+---
+- name: Ensure NFS client packages are installed
+  ansible.builtin.apt:
+    name: nfs-common
+    state: present
+    update_cache: yes
+
+- name: Check whether mount point is already mounted
+  ansible.builtin.command:
+    argv:
+      - awk
+      - -v
+      - "mp={{ nfs_mount_point }}"
+      - "$5==mp {found=1} END {exit found?0:1}"
+      - /proc/self/mountinfo
+  register: nfs_mountpoint_status
+  changed_when: false
+  failed_when: false
+
+- name: Create mount point directory
+  ansible.builtin.file:
+    path: "{{ nfs_mount_point }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  when: nfs_mountpoint_status.rc != 0
+
+- name: Ensure NFS share entry is present in fstab
+  ansible.builtin.mount:
+    path: "{{ nfs_mount_point }}"
+    src: "{{ nfs_server }}:{{ nfs_share }}"
+    fstype: nfs
+    opts: "{{ nfs_mount_opts }}"
+    state: present
+
+- name: Attempt mount with timeout when requested and not already mounted
+  ansible.builtin.command:
+    argv:
+      - timeout
+      - "{{ nfs_mount_timeout_seconds }}s"
+      - mount
+      - "{{ nfs_mount_point }}"
+  register: nfs_mount_attempt
+  changed_when: nfs_mount_attempt.rc == 0
+  failed_when: false
+  when:
+    - nfs_mount_now | bool
+    - nfs_mountpoint_status.rc != 0
+
+- name: Report non-fatal mount failure
+  ansible.builtin.debug:
+    msg: >-
+      NFS mount attempt failed or timed out (rc={{ nfs_mount_attempt.rc }}). The fstab
+      entry is configured and system boot will continue without blocking.
+  when:
+    - nfs_mount_now | bool
+    - nfs_mountpoint_status.rc != 0
+    - nfs_mount_attempt.rc != 0

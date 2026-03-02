@@ -1,0 +1,6 @@
+---
+- name: Setup raspistill and raspivid services
+  hosts: birdboxes
+  become: yes
+  roles:
+    - raspicam

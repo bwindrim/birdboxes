@@ -1,0 +1,12 @@
+[Unit]
+Description=PPP Connection for Clipper
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/pon clipper
+ExecStop=/usr/bin/poff clipper
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

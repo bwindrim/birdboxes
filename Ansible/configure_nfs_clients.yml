@@ -1,0 +1,6 @@
+---
+- name: Configure Debian hosts as NFS clients
+  hosts: nfs_clients
+  become: true
+  roles:
+    - nfs-client

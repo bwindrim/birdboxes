@@ -1,0 +1,4 @@
+/proc/cpuinfo r
+/tmp/getState.json r
+/sys/class/leds/PWR/brightness w
+
