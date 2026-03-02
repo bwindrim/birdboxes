@@ -12,12 +12,12 @@
   notify: Reboot raspberry pi
   
 - name: Disable serial login shell on Raspberry Pi
-  ansible.builtin.command: raspi-config nonint do_serial_cons 0
+  ansible.builtin.command: raspi-config nonint do_serial_cons 1
   become: yes
   changed_when: false
 
 - name: Enable serial port on Raspberry Pi
-  ansible.builtin.command: raspi-config nonint do_serial_hw 1
+  ansible.builtin.command: raspi-config nonint do_serial_hw 0
   become: yes
   changed_when: false
 
