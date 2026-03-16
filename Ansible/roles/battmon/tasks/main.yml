@@ -19,10 +19,20 @@
   shell: "raspi-config nonint do_i2c 0"
   when: (i2c_status.stdout != '0')
 
-- name: Install battery monitor
+- name: Install BirdBox3 battery monitor
+  when: inventory_hostname == 'birdbox3'
   copy:
     dest: /usr/local/bin/battmon.py
     src: "{{ inventory_hostname }}.py"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Install BirdBox1/2 battery monitor
+  when: inventory_hostname != 'birdbox3'
+  copy:
+    dest: /usr/local/bin/battmon.py
+    src: birdbox2.py
     owner: root
     group: root
     mode: '0755'

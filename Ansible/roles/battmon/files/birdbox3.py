@@ -9,8 +9,11 @@ import RPi.GPIO as GPIO
 import paho.mqtt.client as mqtt
 from datetime import datetime
 from os.path import exists
+import socket
 
-broker_name = "192.168.58.23" # WG address of Pi2B
+broker_name = "broker.hivemq.com" # HiveMQ public broker, no authentication.
+client_name = socket.gethostname()
+root_topic = f"BWBirdBoxes/{client_name}"
 
 # These are constants from MicroPython's machine module, which we don't have direct access to here
 PWRON_RESET = 1
@@ -229,7 +232,7 @@ def on_message(client, userdata, message):
         print(message.topic, "=", str(message.payload.decode("utf-8")), "(retained)")
     else:
         print(message.topic, "=", str(message.payload.decode("utf-8")), "(live)")
-    if message.topic == "birdboxes/birdbox3/force_up":
+    if message.topic == f"{root_topic}/force_up":
         if message.payload:
             force_up = bool(int.from_bytes(message.payload, byteorder='little'))
         else:
@@ -238,7 +241,7 @@ def on_message(client, userdata, message):
 def on_log(client, userdata, level, buf):
     print("battmon MQTT: ", buf)
 
-client = mqtt.Client("birdbox3")
+client = mqtt.Client(client_name)
 client.on_message=on_message
 client.on_log = on_log
 client.connect_async(broker_name) # connect in background, in case broker not reachable
@@ -250,7 +253,7 @@ try:
     initial_status = piwatcher_status() # store the piwatcher status
     print("PiWatcher initial status =", initial_status)    # log the status
     if len(initial_status) >= 2:
-        client.publish("birdboxes/birdbox3/initial_status", int(initial_status[1], base=16), qos=1, retain=True)
+        client.publish(f"{root_topic}/initial_status", int(initial_status[1], base=16), qos=1, retain=True)
     piwatcher_reset()        # clear the PiWatcher status
     piwatcher_led(False)     # turn off the PiWatcher's LED
     piwatcher_watch(3)       # set 3-minute watchdog timeout
@@ -261,7 +264,7 @@ try:
     noon_today = minutes(0,12,0)
     noon_tomorrow = minutes(1,12,0)
     print ("now =", now, "noon today =", noon_today, "noon tomorrow =", noon_tomorrow)
-    client.publish("birdboxes/birdbox3/startup_time", time.asctime(), qos=1, retain=True)
+    client.publish(f"{root_topic}/startup_time", time.asctime(), qos=1, retain=True)
     # Set a default wake interval, as a backstop
     if (now > (noon_today - 60)): # it's after 11am already
         piwatcher_wake(noon_tomorrow - now) # wake tomorrow
@@ -273,8 +276,8 @@ try:
     voltage1 = primary_voltage(level)
     voltage2 = secondary_voltage(level2)
     print ("Battery levels: primary =", level, "secondary =", level2)
-    client.publish("birdboxes/birdbox3/initial_battery_level", voltage1, qos=1, retain=True)
-    client.publish("birdboxes/birdbox3/initial_battery2_level", voltage2, qos=1, retain=True)
+    client.publish(f"{root_topic}/initial_battery_level", voltage1, qos=1, retain=True)
+    client.publish(f"{root_topic}/initial_battery2_level", voltage2, qos=1, retain=True)
     stay_up = 15 # default 15-minute time before shutting down, overridden below
     wake_time = noon_tomorrow # default wake-up time
     message = "Default shutdown"
@@ -282,9 +285,9 @@ try:
     if level != None: # if there wasn't an I2C error reading the level
         stay_up, wake_time, message = evaluate(now, level)
     print("stay-up duration =", stay_up, "wake-up time =", wake_time)
-    client.publish("birdboxes/birdbox3/initial_stay_up", stay_up, qos=1, retain=True)
-    client.publish("birdboxes/birdbox3/wake_time", timestr(wake_time), qos=1, retain=True)
-    ntfy(f'BirdBox3 up at {timestr(now)}, for {stay_up} mins: batt1 {voltage1}, batt2 {voltage2}')
+    client.publish(f"{root_topic}/initial_stay_up", stay_up, qos=1, retain=True)
+    client.publish(f"{root_topic}/wake_time", timestr(wake_time), qos=1, retain=True)
+    ntfy(f'{client_name} up at {timestr(now)}, for {stay_up} mins: batt1 {voltage1}, batt2 {voltage2}')
     # Main watcher loop
     while stay_up > 0:
         # Sleep for one minute
@@ -294,12 +297,12 @@ try:
         status = piwatcher_status()  # reset the watchdog
         level = getBatteryLevel()
         print("now = ", timestr(now), "stay up = ", stay_up, "battery level =", level, "status =", status)
-        client.publish("birdboxes/birdbox3/stay_up", stay_up, qos=1, retain=True)
-        client.publish("birdboxes/birdbox3/battery_level", primary_voltage(level), qos=1, retain=True)
+        client.publish(f"{root_topic}/stay_up", stay_up, qos=1, retain=True)
+        client.publish(f"{root_topic}/battery_level", primary_voltage(level), qos=1, retain=True)
         if len(status) >= 2:
             status_val = int(status[1], base=16)
             if status_val != 0:
-                client.publish("birdboxes/birdbox3/status", status_val, qos=1, retain=True)
+                client.publish(f"{root_topic}/status", status_val, qos=1, retain=True)
         if level < 43000: # low battery, shutdown immediately
             stay_up = 0
             message = "Low battery, immediate shutdown"
@@ -322,10 +325,10 @@ try:
     piwatcher_led(True)     # turn on the PiWatcher's LED
     piwatcher_wake(wake_time - now - 3) # set the wake-up interval
     print("Shutting down, wake time is", timestr(wake_time))
-    client.publish("birdboxes/birdbox3/shutdown_time", time.asctime(), qos=1, retain=True)
-    client.publish("birdboxes/birdbox3/wake_time", timestr(wake_time), qos=1, retain=True)
-    client.publish("birdboxes/birdbox3/message", message, qos=1, retain=True)
-    ntfy(f'BirdBox3 down at {timestr(now)}, until {timestr(wake_time)}: batt1 {primary_voltage(level)}, {message}')
+    client.publish(f"{root_topic}/shutdown_time", time.asctime(), qos=1, retain=True)
+    client.publish(f"{root_topic}/wake_time", timestr(wake_time), qos=1, retain=True)
+    client.publish(f"{root_topic}/message", message, qos=1, retain=True)
+    ntfy(f'{client_name} down at {timestr(now)}, until {timestr(wake_time)}: batt1 {primary_voltage(level)}, {message}')
     if exists("/tmp/noshutdown"): # if shutdown is to be blocked
         print("Shutdown blocked by /tmp/noshutdown, deferring by one hour")
         system_shutdown(message, when="+60") # ToDo: fix shutdown deferral (for fledging!)
