@@ -47,8 +47,9 @@ def piwatcher_led(state):
     setting = "off"
     if state:
         setting = "on"
-    result = subprocess.run(["/usr/local/bin/piwatcher", "led", setting], capture_output=True)
-    print("PiWatcher status =", result)
+    if client_name != "birdbox1": # BirdBox1's PiWatcher doesn't support the LED command, so skip it to avoid errors
+        result = subprocess.run(["/usr/local/bin/piwatcher", "led", setting], capture_output=True)
+        print("PiWatcher status =", result)
 
 def piwatcher_wake(minutes):
     "Set the wake interval for PiWatcher"
