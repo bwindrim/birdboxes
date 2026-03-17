@@ -32,7 +32,7 @@
   when: inventory_hostname != 'birdbox3'
   copy:
     dest: /usr/local/bin/battmon.py
-    src: birdbox2.py
+    src: battmon.py
     owner: root
     group: root
     mode: '0755'
