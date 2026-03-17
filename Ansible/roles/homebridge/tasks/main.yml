@@ -5,6 +5,10 @@
     name: pigpio
     state: present
 
+- name: Enable remote GPIO access
+  command: raspi-config nonint do_rgpio 0
+  changed_when: false
+
 - name: Install getState
   copy:
     dest: /opt/pigpio/cgi/getState

@@ -5,10 +5,9 @@
 
   tasks:
 
-  - name: Ensure that WireGuard is installed
+  - name: Update apt cache
     apt:
-      name: wireguard
-      state: present
+      update_cache: yes
 
   - name: Ensure that net-tools is installed
     apt:
