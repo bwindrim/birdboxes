@@ -1,65 +1,35 @@
 all:
   hosts:
-    birdbox1:
-      ansible_host: birdbox1
-      ansible_user: brian
-      wireguard_address: 192.168.3.11/24
-      wireguard_endpoint: "bwbirdboxes.duckdns.org:53798"
-      wg_ip: 192.168.3.11
-      image_prefix: BB1
     birdbox2:
-      ansible_host: birdbox2
+      ansible_host: birdbox2.local
       ansible_user: brian
       wireguard_address: 192.168.3.12/24
-#      wireguard_endpoint: "bwbirdboxes.duckdns.org:53798"
       wireguard_endpoint: "192.168.58.23:53798"
       wg_ip: 192.168.3.12
       image_prefix: BB2
-    birdbox3:
-      ansible_host: birdbox3
-      ansible_user: brian
-      wireguard_address: 192.168.3.13/24
-      wireguard_endpoint: "192.168.58.23:53798"
-      wg_ip: 192.168.3.13
-      image_prefix: BB3
   children:
     birdboxes:
       hosts:
-        birdbox1: {}
         birdbox2: {}
-        birdbox3: {}
     wireguard_clients:
       hosts:
-        birdbox1: {}
         birdbox2: {}
-        birdbox3: {}
     nfs_clients:
       hosts:
-        birdbox1: {}
         birdbox2: {}
-        birdbox3: {}
     rsync_servers:
       hosts:
-        birdbox1: {}
         birdbox2: {}
-        birdbox3: {}
     iperf3_servers:
       hosts:
-        birdbox1: {}
         birdbox2: {}
-        birdbox3: {}
     piwatchers:
       hosts:
-        birdbox1: {}
         birdbox2: {}
-        birdbox3: {}
     lte_ppp_nodes:
       hosts:
-        birdbox1: {}
 #        birdbox2: {}
     battmon_hosts:
       hosts:
-        birdbox1: {}
         birdbox2: {}
-        birdbox3: {}
 
