@@ -1,5 +1,10 @@
 ---
 # tasks file for raspicam
+
+- name: Enable legacy camera support
+  command: raspi-config nonint do_legacy 0
+  changed_when: false
+
 - name: Deploy systemd service for raspistill
   ansible.builtin.copy:
     src: "raspistill@.service"
