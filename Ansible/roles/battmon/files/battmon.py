@@ -113,34 +113,34 @@ def evaluate(now, level):
         wake_time = timedelta(hours=8)
         message = "Early morning shutdown"
         return (stay_up, wake_time, message) # early out
-    elif level >= 100: # 4 battery bars, stay up for 2 hours then power off for 3 hours
+    elif level >= 100: # 4 battery bars, stay up for 2 hours
         stay_up = timedelta(minutes=120)
         wake_time = now + timedelta(minutes=360)
-    elif level >= 85: # 3-4 battery bars, stay up for 1.5 hours then power off for 4 hours
+    elif level >= 85: # 3-4 battery bars, stay up for 1.5 hours
         stay_up = timedelta(minutes=90)
         wake_time = now + timedelta(minutes=360)
-    elif level >= 75: # 3 battery bars, stay up for 1 hour then power off for 5 hours
+    elif level >= 75: # 3 battery bars, stay up for 1 hour
         stay_up = timedelta(minutes=60)
         wake_time = now + timedelta(minutes=360)
-    elif level >= 60: # 2-3 battery bars, stay up for 30 minutes then power off for (at least) 12 hours
-        stay_up = timedelta(minutes=30)
+    elif level >= 60: # 2-3 battery bars, stay up for 30 minutes
+        stay_up = timedelta(minutes=30) 
         wake_time = now + timedelta(minutes=720)
-    elif level >= 50: # 2 battery bars, stay up for 20 minutes then power off until 8:00 tomorrow
+    elif level >= 50: # 2 battery bars, stay up for 20 minutes
         stay_up = timedelta(minutes=20)
         if now >= timedelta(hours=12): # is after midday
-            wake_time = timedelta(days=1, hours=8)
-            message = "Low battery shutdown until 12pm tomorrow"
+            wake_time = timedelta(hours=20)
+            message = "Low battery shutdown until 8pm today"
         else:
             wake_time = timedelta(hours=14)
             message = "Low battery shutdown until 2pm today"
-    else: # Battery critical, power off immediately until 12:00 tomorrow
+    else: # Battery critical, stay up for 10 minutes
         stay_up = timedelta(minutes=10)
         if now >= timedelta(hours=12):
-            wake_time = timedelta(days=1, hours=14)
-            message = "Emergency shutdown until 2pm tomorrow"
+            wake_time = timedelta(days=1, hours=8)
+            message = "Emergency shutdown until 8am tomorrow"
         else:
-            wake_time = timedelta(hours=14)
-            message = "Emergency shutdown until 2pm today"
+            wake_time = timedelta(hours=20)
+            message = "Emergency shutdown until 8pm today"
 
     wake_time = floor_to_15(wake_time) # Round wake time down to nearest 15 minutes
     if wake_time >= timedelta(hours=23): # wake is 11PM or later
