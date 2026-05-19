@@ -7,49 +7,50 @@ import paho.mqtt.client as mqtt
 import requests
 from datetime import timedelta
 from os.path import exists
+from typing import Any, List, Optional, Tuple
 import socket
 
-broker_name = "broker.hivemq.com" # HiveMQ public broker, no authentication.
-client_name = socket.gethostname()
-root_topic = f"BWBirdBoxes/{client_name}"
+broker_name: str = "broker.hivemq.com" # HiveMQ public broker, no authentication.
+client_name: str = socket.gethostname()
+root_topic: str = f"BWBirdBoxes/{client_name}"
 
 # Use BCM GPIO references instead of physical pin numbers
 GPIO.setmode(GPIO.BCM)
 
 # Define GPIO signals to use for the battery level
-battery = [13, 12, 7, 22]
+battery: List[int] = [13, 12, 7, 22]
 
-force_up = None
+force_up: Optional[bool] = None
 
 GPIO.setup(battery, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-def hours(num):
+def hours(num: int) -> timedelta:
     "Returns the duration as a timedelta for the specified number of hours"
     return timedelta(hours=num)
 
 
-def floor_to_15(td):
+def floor_to_15(td: timedelta) -> timedelta:
     "Round a timedelta down to the nearest 15 minutes"
     total_minutes = int(td.total_seconds() // 60)
     return timedelta(minutes=(total_minutes // 15) * 15)
 
-def minutes_until(start, end):
+def minutes_until(start: timedelta, end: timedelta) -> int:
     "Return whole minutes between timedeltas (can be negative)"
     delta = end - start
     return int(delta.total_seconds() // 60)
 
-def piwatcher_status():
+def piwatcher_status() -> List[bytes]:
     "Query PiWatcher to reset watchdog timer"
     result = subprocess.run(["/usr/local/bin/piwatcher", "status"], capture_output=True)
 #    print("PiWatcher status =", result)
     return result.stdout.split()
 
-def piwatcher_reset():
+def piwatcher_reset() -> None:
     "Reset PiWatcher status register, to clear timer_rebooted, button_pressed, etc."
     result = subprocess.run(["/usr/local/bin/piwatcher", "reset"], capture_output=True)
     print("PiWatcher status =", result)
 
-def piwatcher_led(state):
+def piwatcher_led(state: bool) -> None:
     "Switch the PiWatcher LED on or off"
     setting = "off"
     if state:
@@ -58,7 +59,7 @@ def piwatcher_led(state):
         result = subprocess.run(["/usr/local/bin/piwatcher", "led", setting], capture_output=True)
         print("PiWatcher status =", result)
 
-def piwatcher_wake(minutes):
+def piwatcher_wake(minutes: int) -> None:
     "Set the wake interval for PiWatcher"
     if minutes < 10:
         minutes = 10 # enforce minimum wake interval
@@ -68,7 +69,7 @@ def piwatcher_wake(minutes):
     result = subprocess.run(["/usr/local/bin/piwatcher", "wake", str(seconds)], capture_output=True)
     print("PiWatcher wake", seconds, "result =", result)
 
-def piwatcher_watch(minutes):
+def piwatcher_watch(minutes: int) -> None:
     if minutes < 3: # enforce minimum watch time
         minutes = 3
     "Set the watchdog timeout interval for PiWatcher"
@@ -78,18 +79,18 @@ def piwatcher_watch(minutes):
     result = subprocess.run(["/usr/local/bin/piwatcher", "watch", str(seconds)], capture_output=True)
     print("PiWatcher watch", seconds, "result =", result)
 
-def system_shutdown(msg="System going down", when="now"):
+def system_shutdown(msg: str = "System going down", when: str = "now") -> None:
     "Shut down the system"
     print("Shutdown:", msg)
     result = subprocess.run(["/sbin/shutdown", str(when), str(msg)])
     print("shutdown =", result)
 
-def stop_boot_watchdog():
+def stop_boot_watchdog() -> None:
     "Stop the piwatcher service"
     result = subprocess.run(["/bin/systemctl", "stop", "piwatcher.service"])
     print("stop piwatcher =", result)
 
-def getBatteryLevel(numReads=20):
+def getBatteryLevel(numReads: int = 20) -> int:
     "Read the battery level via the GPIOs"
     level = 0
     # Perform repeated reads of each battery pin, and sum them
@@ -98,7 +99,7 @@ def getBatteryLevel(numReads=20):
             level += (1 - GPIO.input(pin))
     return level
 
-def evaluate(now, level):
+def evaluate(now: timedelta, level: int) -> Tuple[timedelta, timedelta, str]:
     "Decide how long to stay up and to sleep, based on current time-of-day and battery level"
     message = "Scheduled shutdown" # default message, may be overridden below
 
@@ -123,7 +124,7 @@ def evaluate(now, level):
         stay_up = timedelta(minutes=60)
         wake_time = now + timedelta(minutes=360)
     elif level >= 60: # 2-3 battery bars, stay up for 30 minutes
-        stay_up = timedelta(minutes=30) 
+        stay_up = timedelta(minutes=30)
         wake_time = now + timedelta(minutes=720)
     elif level >= 50: # 2 battery bars, stay up for 20 minutes
         stay_up = timedelta(minutes=20)
@@ -147,30 +148,30 @@ def evaluate(now, level):
         wake_time = max(wake_time, timedelta(days=1, hours=8)) # Don't bother waking until 8am
     return (stay_up, wake_time, message)
 
-def timestr(td):
+def timestr(td: timedelta) -> str:
     "Convert time representation to readable time string"
     total_minutes = int(td.total_seconds() // 60)
     hours, mins = divmod(total_minutes, 60)
     return format(hours, "02") + ":" + format(mins, "02")
 
-def test(level, interval=15):
+def test(level: int, interval: int = 15) -> None:
     "Test function for evaluate"
     for offset in range(0, 1440, interval):
         current = timedelta(minutes=offset)
         stay_up, wake_time, message = evaluate(current, level)
         print(timestr(current), " = ", int(stay_up.total_seconds() // 60), "mins", timestr(wake_time))
 
-def test_all():
+def test_all() -> None:
     "Test function for evaluate"
     for level in range(80,0,-10):
         test(level)
 
-def ntfy(msg):
+def ntfy(msg: str) -> None:
     requests.post("https://ntfy.sh/BWBirdBoxes",
                   data=msg.encode(encoding='utf-8'))
 
 # MQTT setup
-def on_message(client, userdata, message):
+def on_message(client: mqtt.Client, userdata: Any, message: mqtt.MQTTMessage) -> None:
     global force_up
     if message.retain:
         print(message.topic, "=", str(message.payload.decode("utf-8")), "(retained)")
@@ -182,10 +183,10 @@ def on_message(client, userdata, message):
         else:
             force_up = None
 
-def on_log(client, userdata, level, buf):
+def on_log(client: mqtt.Client, userdata: Any, level: int, buf: str) -> None:
     print("battmon MQTT: ", buf)
     
-client = mqtt.Client(client_name)
+client: mqtt.Client = mqtt.Client(client_name)
 client.connect_async(broker_name) # connect in background, in case broker not reachable
 client.on_message=on_message
 client.on_log = on_log

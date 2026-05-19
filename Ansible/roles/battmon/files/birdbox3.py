@@ -3,27 +3,28 @@ import sys
 import time
 import subprocess
 import smbus # for I2C
-from struct import pack, unpack
+import struct
 import RPi.GPIO as GPIO
 import paho.mqtt.client as mqtt
 import requests
 from datetime import timedelta
 from os.path import exists
+from typing import Any, List, Optional, Tuple, Union
 import socket
 
-broker_name = "broker.hivemq.com" # HiveMQ public broker, no authentication.
-client_name = socket.gethostname()
-root_topic = f"BWBirdBoxes/{client_name}"
+broker_name: str = "broker.hivemq.com" # HiveMQ public broker, no authentication.
+client_name: str = socket.gethostname()
+root_topic: str = f"BWBirdBoxes/{client_name}"
 
 # These are constants from MicroPython's machine module, which we don't have direct access to here
-PWRON_RESET = 1
-WDT_RESET = 3
+PWRON_RESET: int = 1
+WDT_RESET: int = 3
 
 # Use BCM GPIO references instead of physical pin numbers
 GPIO.setmode(GPIO.BCM)
 
 # Define GPIO signals to use
-battery = [6,12,13,26]
+battery: List[int] = [6, 12, 13, 26]
 
 # PicoWatcher I2C register numbers:
 # 1 - status register (read to reset watch countdown)
@@ -35,30 +36,31 @@ battery = [6,12,13,26]
 # 7 - ADC2 value (2 bytes, read-only)
 # 8 - LED control (1 byte, read&write)
 
-force_up = None
+force_up: Optional[bool] = None
+RTCData = Tuple[int, int, int, int, int, int, int, int]
 
 GPIO.setup(battery, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 # Set up I2C link to the Pico
-i2c = smbus.SMBus(1)
-addr = 0x41
+i2c: smbus.SMBus = smbus.SMBus(1)
+addr: int = 0x41
 
-def hours(num):
+def hours(num: int) -> timedelta:
     "Returns the duration as a timedelta for the specified number of hours"
     return timedelta(hours=num)
 
 
-def floor_to_15(td):
+def floor_to_15(td: timedelta) -> timedelta:
     "Round a timedelta down to the nearest 15 minutes"
     total_minutes = int(td.total_seconds() // 60)
     return timedelta(minutes=(total_minutes // 15) * 15)
 
-def minutes_until(start, end):
+def minutes_until(start: timedelta, end: timedelta) -> int:
     "Return whole minutes between timedeltas (can be negative)"
     delta = end - start
     return int(delta.total_seconds() // 60)
 
-def status_to_bytestr(status):
+def status_to_bytestr(status: int) -> bytes:
     "Convert PicoWatcher status to a readable string"
     hw_status = status & 0x0F
     sw_status = (status & 0x30) >> 4
@@ -75,7 +77,9 @@ def status_to_bytestr(status):
         return b'timer_rebooted'
     return b''
 
-def primary_voltage(val):
+def primary_voltage(val: Optional[int]) -> str:
+    if val is None:
+        return "ERR"
     conversion_factor = 13.16 / 46731 # recorded values
     full_battery = 13.24    # reference voltages for a full/empty battery, in volts
     empty_battery = 11.0   # the values could vary by battery size/manufacturer so you might need to adjust them
@@ -86,7 +90,9 @@ def primary_voltage(val):
 
     return '{:.2f}'.format(voltage) + "v " + '{:.0f}%'.format(percentage)
 
-def secondary_voltage(val):
+def secondary_voltage(val: Optional[int]) -> str:
+    if val is None:
+        return "ERR"
     conversion_factor = 3 * 3.3 / 65535
     full_battery = 4.2    # reference voltages for a full/empty battery, in volts
     empty_battery = 2.8   # the values could vary by battery size/manufacturer so you might need to adjust them
@@ -98,7 +104,7 @@ def secondary_voltage(val):
     return '{:.2f}'.format(voltage) + "v " + '{:.0f}%'.format(percentage)
 
 # ToDo: fold these two functions together
-def piwatcher_status():
+def piwatcher_status() -> List[bytes]:
     "Query PicoWatcher to reset watch timer"
     try:
         result = i2c.read_byte_data(addr, 1)
@@ -107,7 +113,7 @@ def piwatcher_status():
     print("PicoWatcher status =", result)
     return [b'OK', bytes(hex(result), 'utf-8'), status_to_bytestr(result)]
 
-def piwatcher_reset():
+def piwatcher_reset() -> List[bytes]:
     "Reset PicoWatcher status register, to clear timer_rebooted, button_pressed, etc."
     try:
         result = i2c.read_byte_data(addr, 4)
@@ -116,7 +122,7 @@ def piwatcher_reset():
     print("PicoWatcher reset =", result)
     return [b"OK", bytes(hex(result), 'utf-8'), status_to_bytestr(result)]
 
-def piwatcher_led(state):
+def piwatcher_led(state: int) -> None:
     "Switch the PicoWatcher LED on or off"
     try:
         result = i2c.write_byte_data(addr, 8, state)
@@ -126,7 +132,7 @@ def piwatcher_led(state):
         result = None
     print("PicoWatcher LED =", state)
     
-def piwatcher_wake(minutes):
+def piwatcher_wake(minutes: int) -> None:
     "Set the wake interval for PicoWatcher"
     while minutes < 0:
         minutes = minutes + 1440 # adjust for day crossings (*hack*)
@@ -139,7 +145,7 @@ def piwatcher_wake(minutes):
         result = None
     print("PicoWatcher wake", seconds, "result =", result)
 
-def piwatcher_watch(minutes):
+def piwatcher_watch(minutes: int) -> None:
     "Set the watch timeout interval for PicoWatcher"
     seconds = min (240, minutes * 60) # clamp wake delay to 240 seconds, to stay within 8-bit limit
     try:
@@ -150,9 +156,9 @@ def piwatcher_watch(minutes):
         result = None
     print("PicoWatcher watch", seconds, "result =", result)
                   
-def picowatcher_rtc(time=None):
+def picowatcher_rtc(time: Optional[RTCData] = None) -> Union[RTCData, int, None]:
     "Get or set the Pico's RTC"
-    if time == None:
+    if time is None:
         time_list = i2c.read_i2c_block_data(addr, 3, 10)
         time_bytes = bytes(time_list)
         result = struct.unpack("HBBBBBBH", time_bytes)
@@ -163,18 +169,18 @@ def picowatcher_rtc(time=None):
         i2c.read_byte(addr) # dummy read
     return result
 
-def system_shutdown(msg="System going down", when="now"):
+def system_shutdown(msg: str = "System going down", when: str = "now") -> None:
     "Shut down the system"
     print("Shutdown:", msg)
     result = subprocess.run(["/sbin/shutdown", str(when), str(msg)])
     print("shutdown =", result)
 
-def stop_boot_watchdog():
+def stop_boot_watchdog() -> None:
     "Stop the piwatcher service"
     result = subprocess.run(["/bin/systemctl", "stop", "piwatcher.service"])
     print("stop piwatcher =", result)
 
-def getBatteryLevel(reg=2):
+def getBatteryLevel(reg: int = 2) -> Optional[int]:
     "Read the battery level from PicoWatcher"
     try:
         level = i2c.read_word_data(addr, reg)
@@ -183,7 +189,7 @@ def getBatteryLevel(reg=2):
         level = None
     return level
 
-def evaluate(now, level):
+def evaluate(now: timedelta, level: int) -> Tuple[timedelta, timedelta, str]:
     "Decide how long to stay up and to sleep, based on current time-of-day and battery level"
     message = "Scheduled shutdown" # default message, may be overridden below
 
@@ -219,30 +225,30 @@ def evaluate(now, level):
         stay_up = timedelta(days=1) - now
     return (stay_up, wake_time, message)
 
-def timestr(td):
+def timestr(td: timedelta) -> str:
     "Convert time representation to readable time string"
     total_minutes = int(td.total_seconds() // 60)
     hours, mins = divmod(total_minutes, 60)
     return format(hours, "02") + ":" + format(mins, "02")
 
-def test(level, interval=15):
+def test(level: int, interval: int = 15) -> None:
     "Test function for evaluate"
     for offset in range(0, 1440, interval):
         current = timedelta(minutes=offset)
         stay_up, wake_time, message = evaluate(current, level)
         print(timestr(current), " = ", int(stay_up.total_seconds() // 60), "mins", timestr(wake_time))
 
-def test_all():
+def test_all() -> None:
     "Test function for evaluate"
     for level in range(80,0,-10):
         test(level)
 
-def ntfy(msg):
+def ntfy(msg: str) -> None:
     requests.post("https://ntfy.sh/BWBirdBoxes",
                   data=msg.encode(encoding='utf-8'))
 
 # MQTT setup
-def on_message(client, userdata, message):
+def on_message(client: mqtt.Client, userdata: Any, message: mqtt.MQTTMessage) -> None:
     global force_up
     if message.retain:
         print(message.topic, "=", str(message.payload.decode("utf-8")), "(retained)")
@@ -254,10 +260,10 @@ def on_message(client, userdata, message):
         else:
             force_up = None
 
-def on_log(client, userdata, level, buf):
+def on_log(client: mqtt.Client, userdata: Any, level: int, buf: str) -> None:
     print("battmon MQTT: ", buf)
     
-client = mqtt.Client(client_name)
+client: mqtt.Client = mqtt.Client(client_name)
 client.on_message=on_message
 client.on_log = on_log
 client.connect_async(broker_name) # connect in background, in case broker not reachable
