@@ -47,6 +47,7 @@ def hours(num):
     "Returns the duration as a timedelta for the specified number of hours"
     return timedelta(hours=num)
 
+
 def floor_to_15(td):
     "Round a timedelta down to the nearest 15 minutes"
     total_minutes = int(td.total_seconds() // 60)
@@ -185,23 +186,30 @@ def getBatteryLevel(reg=2):
 def evaluate(now, level):
     "Decide how long to stay up and to sleep, based on current time-of-day and battery level"
     message = "Scheduled shutdown" # default message, may be overridden below
+
+
     if now < timedelta(hours=5, minutes=30): # It's after midnight but before 8:30, power off until 9:00 today
         stay_up = timedelta(minutes=10)
         wake_time = timedelta(hours=8)
-        message = "Night-time immediate (10 min) shutdown"
+        message = "Night-time immediate shutdown"
         return (stay_up, wake_time, message) # early out
     elif now < timedelta(hours=7, minutes=30): # It's after 5:30 but before 7:30, stay up for an hour then power off until 8:00 today
         stay_up = timedelta(minutes=60)
         wake_time = timedelta(hours=8)
-        message = "Early morning 1-hour shutdown"
+        message = "Early morning shutdown"
         return (stay_up, wake_time, message) # early out
     elif level >= 43000: # battery OK, stay up for 4 hours then power off for 2 hours
         stay_up = timedelta(minutes=120)
         wake_time = now + timedelta(minutes=360)
     else: # Battery low, power off immediately until 12:00 tomorrow
         stay_up = timedelta(minutes=10)
-        wake_time = timedelta(days=1, hours=12)
-        message = "Emergency shutdown"
+        if now >= timedelta(hours=12):
+            wake_time = timedelta(days=1, hours=8)
+            message = "Emergency shutdown until 8am tomorrow"
+        else:
+            wake_time = timedelta(hours=20)
+            message = "Emergency shutdown until 8pm today"
+
     wake_time = floor_to_15(wake_time) # Round wake time down to nearest 15 minutes
     while (wake_time - now) < timedelta(minutes=15): # make sure that wake_time is at least 15mins in the future
         wake_time = wake_time + timedelta(minutes=15)
@@ -235,6 +243,7 @@ def ntfy(msg):
 
 # MQTT setup
 def on_message(client, userdata, message):
+    global force_up
     if message.retain:
         print(message.topic, "=", str(message.payload.decode("utf-8")), "(retained)")
     else:
@@ -247,7 +256,7 @@ def on_message(client, userdata, message):
 
 def on_log(client, userdata, level, buf):
     print("battmon MQTT: ", buf)
-
+    
 client = mqtt.Client(client_name)
 client.on_message=on_message
 client.on_log = on_log
@@ -274,7 +283,7 @@ try:
     print ("now =", timestr(now), "noon today =", timestr(noon_today), "noon tomorrow =", timestr(noon_tomorrow))
     client.publish(f"{root_topic}/startup_time", time.asctime(), qos=1, retain=True)
     # Set a default wake interval, as a backstop
-    if (now > (noon_today - timedelta(minutes=60))): # it's after 11am already
+    if (now > (noon_today - timedelta(hours=1))): # it's after 11am already
         piwatcher_wake(minutes_until(now, noon_tomorrow)) # wake tomorrow
     else:
         piwatcher_wake(minutes_until(now, noon_today)) # wake today
@@ -298,17 +307,17 @@ try:
     client.publish(f"{root_topic}/initial_stay_up", stay_up_minutes, qos=1, retain=True)
     client.publish(f"{root_topic}/wake_time", timestr(wake_time), qos=1, retain=True)
     ntfy(f'{client_name} up at {timestr(now)}, for {stay_up_minutes} mins: batt1 {voltage1}, batt2 {voltage2}')
-    # Main watcher loop
+    # Main watchdog wakeup loop
     while stay_up > timedelta(0):
         # Sleep for one minute
         time.sleep(60) # sleep interval shouldn't be longer than half the watchdog time
         now = now + timedelta(minutes=1)  # advance 'now' by one minute
         stay_up = stay_up - timedelta(minutes=1) # decrement the remaining stay-up duration by one minute
         stay_up_minutes = int(stay_up.total_seconds() // 60)
+        client.publish(f"{root_topic}/stay_up", stay_up_minutes, qos=1, retain=False)
         status = piwatcher_status()  # reset the watchdog
         level = getBatteryLevel()
         print("now = ", timestr(now), "stay up = ", stay_up_minutes, "battery level =", level, "status =", status)
-        client.publish(f"{root_topic}/stay_up", stay_up_minutes, qos=1, retain=True)
         client.publish(f"{root_topic}/battery_level", primary_voltage(level), qos=1, retain=True)
         if len(status) >= 2:
             status_val = int(status[1], base=16)
@@ -342,7 +351,7 @@ try:
     ntfy(f'{client_name} down at {timestr(now)}, until {timestr(wake_time)}: batt1 {primary_voltage(level)}, {message}')
     if exists("/tmp/noshutdown"): # if shutdown is to be blocked
         print("Shutdown blocked by /tmp/noshutdown, deferring by one hour")
-        system_shutdown(message, when="+60") # ToDo: fix shutdown deferral (for fledging!)
+        system_shutdown(message, when="+60")
     else:
         system_shutdown(message)
     # idle loop while we wait for shutdown
@@ -356,4 +365,3 @@ except KeyboardInterrupt:
     print ("Done.")
     client.loop_stop() # stop the MQTT loop thread
     GPIO.cleanup()
-

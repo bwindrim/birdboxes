@@ -171,6 +171,7 @@ def ntfy(msg):
 
 # MQTT setup
 def on_message(client, userdata, message):
+    global force_up
     if message.retain:
         print(message.topic, "=", str(message.payload.decode("utf-8")), "(retained)")
     else:
@@ -182,7 +183,7 @@ def on_message(client, userdata, message):
             force_up = None
 
 def on_log(client, userdata, level, buf):
-    print("log: ",buf)
+    print("battmon MQTT: ", buf)
     
 client = mqtt.Client(client_name)
 client.connect_async(broker_name) # connect in background, in case broker not reachable
@@ -247,10 +248,10 @@ try:
                 client.publish(f"{root_topic}/status", status_val, qos=1, retain=True)
         if b'button_pressed' in status: # shutdown immediately
 #            piwatcher_reset()        # clear the PiWatcher status
-            stay_up = timedelta(0)
+            stay_up = timedelta(minutes=0)
             message = "Button pressed, immediate shutdown"
         if exists("/tmp/shutdown"): # if shutdown requested
-            stay_up = timedelta(0)
+            stay_up = timedelta(minutes=0)
             message = "/tmp/shutdown detected, immediate shutdown"
         piwatcher_wake(max(minutes_until(now, wake_time) - 3, 0)) # update the wake-up interval
     # We've left the loop, initiate shutdown
@@ -260,6 +261,7 @@ try:
     print("Shutting down, wake time is", timestr(wake_time))
     client.publish(f"{root_topic}/shutdown_time", time.asctime(), qos=1, retain=True)
     client.publish(f"{root_topic}/wake_time", timestr(wake_time), qos=1, retain=True)
+    client.publish(f"{root_topic}/message", message, qos=1, retain=True)
     ntfy(f'{client_name} down at {timestr(now)}, until {timestr(wake_time)}: batt {level}%, {message}')
     if exists("/tmp/noshutdown"): # if shutdown is to be blocked
         print("Shutdown blocked by /tmp/noshutdown, deferring by one hour")
