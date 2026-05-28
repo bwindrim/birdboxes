@@ -70,9 +70,9 @@ def piwatcher_wake(minutes: int) -> None:
     print("PiWatcher wake", seconds, "result =", result)
 
 def piwatcher_watch(minutes: int) -> None:
+    "Set the watchdog timeout interval for PiWatcher"
     if minutes < 3: # enforce minimum watch time
         minutes = 3
-    "Set the watchdog timeout interval for PiWatcher"
     seconds = minutes * 60
     if seconds > 255:
         seconds = 255 # don't exceed hw-defined limit
