@@ -128,7 +128,10 @@ def evaluate(now: timedelta, level: int) -> Tuple[timedelta, timedelta, str]:
         wake_time = now + timedelta(minutes=720)
     elif level >= 50: # 2 battery bars, stay up for 20 minutes
         stay_up = timedelta(minutes=20)
-        if now >= timedelta(hours=12): # is after midday
+        if now >= timedelta(hours=20): # is after 8pm
+            wake_time = timedelta(days=1, hours=8)
+            message = "Low battery shutdown until 8pm today"
+        elif now >= timedelta(hours=12): # is after midday
             wake_time = timedelta(hours=20)
             message = "Low battery shutdown until 8pm today"
         else:
