@@ -104,7 +104,7 @@ def evaluate(now: timedelta, level: int) -> Tuple[timedelta, timedelta, str]:
     message = "Scheduled shutdown" # default message, may be overridden below
 
 
-    if now < timedelta(hours=5, minutes=30): # It's after midnight but before 8:30, power off until 9:00 today
+    if now < timedelta(hours=5, minutes=30): # It's after midnight but before 5:30, power off until 8:00 today
         stay_up = timedelta(minutes=10)
         wake_time = timedelta(hours=8)
         message = "Night-time immediate shutdown"
@@ -114,41 +114,49 @@ def evaluate(now: timedelta, level: int) -> Tuple[timedelta, timedelta, str]:
         wake_time = timedelta(hours=8)
         message = "Early morning shutdown"
         return (stay_up, wake_time, message) # early out
-    elif level >= 100: # 4 battery bars, stay up for 2 hours
-        stay_up = timedelta(minutes=120)
-        wake_time = now + timedelta(minutes=360)
-    elif level >= 85: # 3-4 battery bars, stay up for 1.5 hours
-        stay_up = timedelta(minutes=90)
-        wake_time = now + timedelta(minutes=360)
-    elif level >= 75: # 3 battery bars, stay up for 1 hour
-        stay_up = timedelta(minutes=60)
-        wake_time = now + timedelta(minutes=360)
-    elif level >= 60: # 2-3 battery bars, stay up for 30 minutes
-        stay_up = timedelta(minutes=30)
-        wake_time = now + timedelta(minutes=720)
-    elif level >= 50: # 2 battery bars, stay up for 20 minutes
-        stay_up = timedelta(minutes=20)
+    elif level >= 100: # 4 battery bars
+        stay_up = timedelta(minutes=120) #  stay up for 2 hours
+        wake_time = now + timedelta(minutes=360) # wake 6 hours from now
+    elif level >= 85: # 3-4 battery bars
+        stay_up = timedelta(minutes=90) #  stay up for 1.5 hours
+        wake_time = now + timedelta(minutes=360) # wake 6 hours from now
+    elif level >= 75: # 3 battery bars
+        stay_up = timedelta(minutes=60) # stay up for 1 hour
+        wake_time = now + timedelta(minutes=360) # wake 6 hours from now
+    elif level >= 60: # 2-3 battery bars
+        stay_up = timedelta(minutes=30) # stay up for 30 minutes
+        wake_time = now + timedelta(minutes=720) # wake 12 hours from now
+    elif level >= 50: # 2 battery bars
+        stay_up = timedelta(minutes=20) # stay up for 20 minutes
+        # Power off until later in the day, depending on the time, to try to maximise
+        # the chance of catching some sun to recharge before waking up again.
         if now >= timedelta(hours=20): # is after 8pm
+            # It's late, so power off until 8am tomorrow.
             wake_time = timedelta(days=1, hours=8)
-            message = "Low battery shutdown until 8pm today"
+            message = "Low battery shutdown until 8am tomorrow"
         elif now >= timedelta(hours=12): # is after midday
+            # It's afternoon, so power off until 8pm today.
             wake_time = timedelta(hours=20)
             message = "Low battery shutdown until 8pm today"
         else:
+            # It's morning, so power off until 2pm today.
             wake_time = timedelta(hours=14)
             message = "Low battery shutdown until 2pm today"
     else: # Battery critical, stay up for 10 minutes
         stay_up = timedelta(minutes=10)
         if now >= timedelta(hours=12):
+            # It's afternoon or evening, so power off until 8am tomorrow.
             wake_time = timedelta(days=1, hours=8)
             message = "Emergency shutdown until 8am tomorrow"
         else:
+            # It's morning, so power off until 8pm today.
             wake_time = timedelta(hours=20)
             message = "Emergency shutdown until 8pm today"
 
     wake_time = floor_to_15(wake_time) # Round wake time down to nearest 15 minutes
     if wake_time >= timedelta(hours=23): # wake is 11PM or later
-        wake_time = max(wake_time, timedelta(days=1, hours=8)) # Don't bother waking until 8am
+        # Don't bother waking until 8am tomorrow, to avoid waking in the middle of the night.
+        wake_time = max(wake_time, timedelta(days=1, hours=8))
     return (stay_up, wake_time, message)
 
 def timestr(td: timedelta) -> str:
