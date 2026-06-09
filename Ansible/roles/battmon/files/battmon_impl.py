@@ -56,7 +56,7 @@ def system_shutdown(msg: str = "System going down", when: str = "now") -> None:
 def stop_boot_watchdog() -> None:
     subprocess.run(["/bin/systemctl", "stop", "piwatcher.service"])
 
-def getBatteryLevel(numReads: int = 20) -> int:
+def getBatteryLevel(numReads: int = 25) -> int:
     level = 0
     for i in range(numReads):
         for pin in battery:

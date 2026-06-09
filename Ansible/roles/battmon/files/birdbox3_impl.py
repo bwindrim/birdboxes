@@ -81,9 +81,9 @@ def piwatcher_reset() -> List[bytes]:
         return [b'ERR', b'-1', b'OSError']
     return [b"OK", bytes(hex(result), 'utf-8'), status_to_bytestr(result)]
 
-def piwatcher_led(state: int) -> None:
+def piwatcher_led(state: bool) -> None:
     try:
-        i2c.write_byte_data(addr, 8, state)
+        i2c.write_byte_data(addr, 8, int(state))
         i2c.read_byte(addr)
     except OSError:
         pass
