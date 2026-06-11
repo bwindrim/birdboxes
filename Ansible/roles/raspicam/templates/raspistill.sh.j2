@@ -3,6 +3,6 @@
 FILE=$(date +"{{ image_prefix }}_%FT%H-%M-%S.jpg")
 LOCAL_PATH=/mnt/local/photo
 
-/usr/bin/libcamera-still --awbgains 0.9,0.5 --nopreview --timeout 5 --width 640 --height 480 -q 75 --tuning-file /usr/share/libcamera/ipa/rpi/vc4/imx219_noir.json -o $LOCA>
+/usr/bin/libcamera-still --awbgains 0.9,0.5 --nopreview --timeout 5 --width 640 --height 480 -q 75 --tuning-file /usr/share/libcamera/ipa/rpi/vc4/imx219_noir.json -o $LOCAL_PATH/$FILE
 chmod a-w $LOCAL_PATH/$FILE
 cat $LOCAL_PATH/$FILE
