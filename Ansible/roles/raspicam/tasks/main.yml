@@ -1,8 +1,8 @@
 ---
 # tasks file for raspicam
 
-- name: Enable legacy camera support
-  command: raspi-config nonint do_legacy 0
+- name: Disable legacy camera support
+  command: raspi-config nonint do_legacy 1
   changed_when: false
 
 - name: Deploy systemd service for raspistill

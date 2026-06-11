@@ -1,8 +1,8 @@
 #!/bin/bash
 
-FILE=$(date +"{{ image_prefix }}_%FT%H:%M:%S.jpg")
+FILE=$(date +"{{ image_prefix }}_%FT%H-%M-%S.jpg")
 LOCAL_PATH=/mnt/local/photo
 
-/usr/bin/raspistill -awb off -awbg '1.0,1.0' -n -t 500 -w 640 -h 480 -q 75 -o - | tee $LOCAL_PATH/$FILE
+/usr/bin/libcamera-still --awbgains 0.9,0.5 --nopreview --timeout 5 --width 640 --height 480 -q 75 --tuning-file /usr/share/libcamera/ipa/rpi/vc4/imx219_noir.json -o $LOCA>
 chmod a-w $LOCAL_PATH/$FILE
-
+cat $LOCAL_PATH/$FILE
