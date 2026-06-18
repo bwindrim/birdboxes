@@ -22,20 +22,28 @@
 - name: Install BirdBox3 battery monitor
   when: inventory_hostname == 'birdbox3'
   copy:
-    dest: /usr/local/bin/battmon.py
-    src: "{{ inventory_hostname }}.py"
+    dest: "/usr/local/bin/{{ item.dest }}"
+    src: "{{ item.src }}"
     owner: root
     group: root
     mode: '0755'
+  loop:
+    - { src: birdbox3.py, dest: battmon.py }
+    - { src: body.py, dest: body.py }
+    - { src: birdbox3_impl.py, dest: birdbox3_impl.py }
 
 - name: Install BirdBox1/2 battery monitor
   when: inventory_hostname != 'birdbox3'
   copy:
-    dest: /usr/local/bin/battmon.py
-    src: battmon.py
+    dest: "/usr/local/bin/{{ item }}"
+    src: "{{ item }}"
     owner: root
     group: root
     mode: '0755'
+  loop:
+    - battmon.py
+    - battmon_impl.py
+    - body.py
 
 - name: Create battmon systemd service
   copy:
